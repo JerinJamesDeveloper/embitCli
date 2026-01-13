@@ -50,7 +50,7 @@ class ${config.pascalCase}RemoteDataSourceImpl implements ${config.pascalCase}Re
   Future<${config.pascalCase}Model> get${config.pascalCase}(String id) async {
     try {
       final response = await _dioClient.get(
-        '\${ApiEndpoints.${config.camelCase}s}/\$id',
+        '\${ApiEndpoints.get${config.camelCase}s}/\$id',
       );
 
       final data = response.data as Map<String, dynamic>;
@@ -67,7 +67,7 @@ class ${config.pascalCase}RemoteDataSourceImpl implements ${config.pascalCase}Re
   @override
   Future<List<${config.pascalCase}Model>> getAll${config.pascalCase}s() async {
     try {
-      final response = await _dioClient.get(ApiEndpoints.${config.camelCase}s);
+      final response = await _dioClient.get(ApiEndpoints.getall${config.camelCase}s);
 
       final data = response.data as Map<String, dynamic>;
       final listData = data['data'] as List? ?? [];
@@ -89,7 +89,7 @@ class ${config.pascalCase}RemoteDataSourceImpl implements ${config.pascalCase}Re
   }) async {
     try {
       final response = await _dioClient.post(
-        ApiEndpoints.${config.camelCase}s,
+        ApiEndpoints.create${config.camelCase}s,
         data: {
           'name': name,
           if (description != null) 'description': description,
@@ -121,7 +121,7 @@ class ${config.pascalCase}RemoteDataSourceImpl implements ${config.pascalCase}Re
       if (isActive != null) updateData['is_active'] = isActive;
 
       final response = await _dioClient.put(
-        '\${ApiEndpoints.${config.camelCase}s}/\$id',
+        '\${ApiEndpoints.update${config.camelCase}s}/\$id',
         data: updateData,
       );
 
@@ -139,7 +139,7 @@ class ${config.pascalCase}RemoteDataSourceImpl implements ${config.pascalCase}Re
   @override
   Future<void> delete${config.pascalCase}(String id) async {
     try {
-      await _dioClient.delete('\${ApiEndpoints.${config.camelCase}s}/\$id');
+      await _dioClient.delete('\${ApiEndpoints.delete${config.camelCase}s}/\$id');
     } on ServerException {
       rethrow;
     } catch (e) {

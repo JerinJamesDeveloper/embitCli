@@ -47,7 +47,12 @@ import 'package:${projectName}/features/${config.snakeCase}/presentation/pages/$
   /// API endpoints to add
   static String apiEndpoint(FeatureConfig config) => '''
   
-  // ${config.pascalCase}
-  static const String ${config.camelCase}s = '/api/${config.snakeCase}s';
+  // ================= ${config.pascalCase}  ============================
+
+  static const String get${config.camelCase}s = '/api/${config.snakeCase}s/get';
+  static const String getall${config.camelCase}s = '/api/${config.snakeCase}s/getall';
+  static const String create${config.camelCase}s = '/api/${config.snakeCase}s/create';
+  static const String delete${config.camelCase}s = '/api/${config.snakeCase}s/delete';
+  static const String update${config.camelCase}s = '/api/${config.snakeCase}s/update';
 ''';
 }
