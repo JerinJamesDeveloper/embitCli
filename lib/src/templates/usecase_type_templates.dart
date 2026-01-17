@@ -325,14 +325,12 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
   }
 
   static String repositoryMethodImpl(UseCaseConfig config) {
-    // Basic implementation structure based on Clean Architecture
     final method = config.repositoryMethodName;
     final type = config.returnType;
     final params = _getParamsSignature(config);
     final args = _getArgsUsage(config);
 
-    // This is a generic robust implementation. 
-    // You can customize specific logic per type (create, delete, etc.) here if needed.
+    // Notice the @override
     return '''
   @override
   Future<Either<Failure, $type>> $method($params) async {

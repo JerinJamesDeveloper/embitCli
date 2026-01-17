@@ -67,45 +67,45 @@ class UseCaseGenerator {
   // ==================== UPDATE REPOSITORY IMPLEMENTATION ====================
 
   Future<void> _updateRepositoryImpl() async {
-    // 1. Construct Path carefully
-    final path = '${config.projectPath}/${config.featureBasePath}/data/repositories/${config.featureSnakeCase}_repository_impl.dart';
+    // 1. Construct path carefully
+    final path =
+        '${config.projectPath}/${config.featureBasePath}/data/repositories/${config.featureSnakeCase}_repository_impl.dart';
     final file = File(path);
 
-    // DEBUG LOG
-    if (verbose) print('  🔍 Checking Repo Impl at: ${file.path}');
+    if (verbose) print('  🔍  Checking Repo Impl at: $path');
 
-    // 2. Check Existence
     if (!file.existsSync()) {
-      print('  ⚠️  Repository implementation NOT found at: $path');
-      print('      Please check if folder name is "${config.featureSnakeCase}"');
+      _log('  ❌  Repository implementation NOT found.');
+      _log('      Expected at: $path');
       return;
     }
 
     var content = await file.readAsString();
 
-    // 3. Check for Duplicates
+    // 2. Strict Check: Ensure we check for "methodName(" to avoid matching comments or substrings
     if (content.contains('${config.repositoryMethodName}(')) {
-      _log('  ⚠️  Method ${config.repositoryMethodName} already exists in RepositoryImpl.');
+      _log(
+          '  ⚠️  Method "${config.repositoryMethodName}" already exists in implementation. Skipping.');
       return;
     }
 
-    // 4. Generate Implementation Snippet
     final impl = UseCaseTypeTemplates.repositoryMethodImpl(config);
 
-    // 5. Find Insertion Point (Last closing brace)
+    // 3. Robust Insertion: Find the last closing brace
     final lastBrace = content.lastIndexOf('}');
-    
+
     if (lastBrace != -1) {
-      // Insert before the last brace
-      content = content.substring(0, lastBrace) + 
-                '\n$impl\n' + 
-                content.substring(lastBrace);
-      
+      // Insert code BEFORE the last closing brace
+      content = content.substring(0, lastBrace) +
+          '\n$impl\n' +
+          content.substring(lastBrace);
+
       await file.writeAsString(content);
-      _log('  ✓ Added implementation to ${config.featurePascalCase}RepositoryImpl');
+      _log(
+          '  ✓ Added implementation to ${config.featurePascalCase}RepositoryImpl');
     } else {
-      print('  ❌ Error: Could not find closing brace "}" in repository_impl.dart');
-      print('     The file format might be malformed.');
+      _log(
+          '  ❌  Error: Malformed file. Could not find closing "}" in ${file.path}');
     }
   }
 
@@ -121,19 +121,19 @@ class UseCaseGenerator {
     }
 
     var content = await file.readAsString();
-    
+
     if (content.contains('${config.repositoryMethodName}(')) {
       _log('  ⚠️  Method already exists in Repository Interface.');
       return;
     }
 
     final signature = UseCaseTypeTemplates.repositoryMethodSignature(config);
-    
+
     final lastBrace = content.lastIndexOf('}');
     if (lastBrace != -1) {
-      content = content.substring(0, lastBrace) + 
-                '\n$signature\n' + 
-                content.substring(lastBrace);
+      content = content.substring(0, lastBrace) +
+          '\n$signature\n' +
+          content.substring(lastBrace);
       await file.writeAsString(content);
       _log('  ✓ Added method signature to ${config.repositoryName}');
     }
@@ -142,7 +142,8 @@ class UseCaseGenerator {
   // ==================== UPDATE REMOTE DATA SOURCE ====================
 
   Future<void> _updateRemoteDataSource() async {
-    final path = '${config.projectPath}/${config.featureBasePath}/data/datasources/${config.featureSnakeCase}_remote_datasource.dart';
+    final path =
+        '${config.projectPath}/${config.featureBasePath}/data/datasources/${config.featureSnakeCase}_remote_datasource.dart';
     final file = File(path);
 
     if (!file.existsSync()) {
@@ -154,41 +155,43 @@ class UseCaseGenerator {
     if (content.contains('${config.repositoryMethodName}(')) return;
 
     // 1. Update Interface (Insert before "class ...Impl")
-    final signature = UseCaseTypeTemplates.remoteDataSourceMethodSignature(config);
-    final implClassStart = content.indexOf('class ${config.featurePascalCase}RemoteDataSourceImpl');
-    
+    final signature =
+        UseCaseTypeTemplates.remoteDataSourceMethodSignature(config);
+    final implClassStart = content
+        .indexOf('class ${config.featurePascalCase}RemoteDataSourceImpl');
+
     if (implClassStart != -1) {
       final interfaceEnd = content.lastIndexOf('}', implClassStart);
       if (interfaceEnd != -1) {
-        content = content.substring(0, interfaceEnd) + 
-                  '\n$signature\n' + 
-                  content.substring(interfaceEnd);
+        content = content.substring(0, interfaceEnd) +
+            '\n$signature\n' +
+            content.substring(interfaceEnd);
       }
     } else {
-       // Fallback: If Abstract and Impl are in separate files, or structure differs
-       // Just look for the first closing brace that isn't the file end
-       // This part depends heavily on your file structure consistency
+      // Fallback: If Abstract and Impl are in separate files, or structure differs
+      // Just look for the first closing brace that isn't the file end
+      // This part depends heavily on your file structure consistency
     }
 
     // 2. Update Implementation (Append to end of file)
     final impl = UseCaseTypeTemplates.remoteDataSourceMethodImpl(config);
-    final lastBrace = content.lastIndexOf('}'); 
-    
+    final lastBrace = content.lastIndexOf('}');
+
     if (lastBrace != -1) {
-      content = content.substring(0, lastBrace) + 
-                '\n$impl\n' + 
-                content.substring(lastBrace);
-      
+      content = content.substring(0, lastBrace) +
+          '\n$impl\n' +
+          content.substring(lastBrace);
+
       await file.writeAsString(content);
       _log('  ✓ Updated Remote Data Source');
     }
   }
 
-
   // ==================== UPDATE DI CONTAINER ====================
 
   Future<void> _updateDIContainer() async {
-    final diFile = File('${config.projectPath}/lib/core/di/injection_container.dart');
+    final diFile =
+        File('${config.projectPath}/lib/core/di/injection_container.dart');
 
     if (!diFile.existsSync()) {
       print('  ⚠️  injection_container.dart not found. Skipping DI update.');
@@ -205,14 +208,16 @@ class UseCaseGenerator {
     }
 
     // Add import
-    final useCaseImport = "import '../../features/${config.featureSnakeCase}/domain/usecases/${config.useCaseSnakeCase}_usecase.dart';";
-    
+    final useCaseImport =
+        "import '../../features/${config.featureSnakeCase}/domain/usecases/${config.useCaseSnakeCase}_usecase.dart';";
+
     final importRegex = RegExp(r"import '[^']+';");
     final matches = importRegex.allMatches(content).toList();
-    
+
     if (matches.isNotEmpty) {
       final lastImportEnd = matches.last.end;
-      content = '${content.substring(0, lastImportEnd)}\n$useCaseImport${content.substring(lastImportEnd)}';
+      content =
+          '${content.substring(0, lastImportEnd)}\n$useCaseImport${content.substring(lastImportEnd)}';
     }
 
     // Add usecase registration to feature init function
@@ -230,7 +235,7 @@ class UseCaseGenerator {
     );
 
     final functionMatch = functionPattern.firstMatch(content);
-    
+
     if (functionMatch != null) {
       final insertPosition = functionMatch.end;
       content = content.substring(0, insertPosition) +
@@ -250,19 +255,19 @@ class UseCaseGenerator {
     );
 
     final blocMatch = blocPattern.firstMatch(content);
-    
+
     if (blocMatch != null) {
       final blocRegistration = blocMatch.group(0)!;
-      
+
       // Find the closing parenthesis before );
       final lastParam = blocRegistration.lastIndexOf('),');
-      
+
       if (lastParam != -1) {
         final newParam = '\n      ${config.useCaseCamelCase}UseCase: sl(),';
         final updatedBloc = blocRegistration.substring(0, lastParam + 2) +
             newParam +
             blocRegistration.substring(lastParam + 2);
-        
+
         content = content.replaceFirst(blocRegistration, updatedBloc);
       }
     }
@@ -308,13 +313,15 @@ class UseCaseGenerator {
     }
 
     // Add import
-    final useCaseImport = "import '../../domain/usecases/${config.useCaseSnakeCase}_usecase.dart';";
+    final useCaseImport =
+        "import '../../domain/usecases/${config.useCaseSnakeCase}_usecase.dart';";
     final importRegex = RegExp(r"import '[^']+';");
     final matches = importRegex.allMatches(content).toList();
-    
+
     if (matches.isNotEmpty) {
       final lastImportEnd = matches.last.end;
-      content = '${content.substring(0, lastImportEnd)}\n$useCaseImport${content.substring(lastImportEnd)}';
+      content =
+          '${content.substring(0, lastImportEnd)}\n$useCaseImport${content.substring(lastImportEnd)}';
     }
 
     // Add field
@@ -324,10 +331,11 @@ class UseCaseGenerator {
     );
 
     final fieldMatch = fieldPattern.firstMatch(content);
-    
+
     if (fieldMatch != null) {
       final insertPos = fieldMatch.end;
-      final newField = '\n  final ${config.useCaseClassName} _${config.useCaseCamelCase}UseCase;';
+      final newField =
+          '\n  final ${config.useCaseClassName} _${config.useCaseCamelCase}UseCase;';
       content = content.substring(0, insertPos) +
           newField +
           content.substring(insertPos);
@@ -340,20 +348,21 @@ class UseCaseGenerator {
     );
 
     final constructorMatch = constructorPattern.firstMatch(content);
-    
+
     if (constructorMatch != null) {
       final constructor = constructorMatch.group(0)!;
       final lastParam = constructor.lastIndexOf('UseCase');
-      
+
       if (lastParam != -1) {
         // Find end of that line
         final lineEnd = constructor.indexOf(',', lastParam);
         if (lineEnd != -1) {
-          final newParam = '\n    required ${config.useCaseClassName} ${config.useCaseCamelCase}UseCase,';
+          final newParam =
+              '\n    required ${config.useCaseClassName} ${config.useCaseCamelCase}UseCase,';
           final updatedConstructor = constructor.substring(0, lineEnd + 1) +
               newParam +
               constructor.substring(lineEnd + 1);
-          
+
           content = content.replaceFirst(constructor, updatedConstructor);
         }
       }
@@ -366,19 +375,20 @@ class UseCaseGenerator {
     );
 
     final initMatch = initPattern.firstMatch(content);
-    
+
     if (initMatch != null) {
       final init = initMatch.group(0)!;
       final lastInit = init.lastIndexOf('_');
-      
+
       if (lastInit != -1) {
         final lineEnd = init.indexOf(',', lastInit);
         if (lineEnd != -1) {
-          final newInit = '\n        _${config.useCaseCamelCase}UseCase = ${config.useCaseCamelCase}UseCase,';
+          final newInit =
+              '\n        _${config.useCaseCamelCase}UseCase = ${config.useCaseCamelCase}UseCase,';
           final updatedInit = init.substring(0, lineEnd + 1) +
               newInit +
               init.substring(lineEnd + 1);
-          
+
           content = content.replaceFirst(init, updatedInit);
         }
       }
@@ -427,7 +437,7 @@ class UseCaseGenerator {
     // Add event before the last closing brace
     final eventCode = UseCaseTypeTemplates.blocEvent(config);
     final lastBrace = content.lastIndexOf('}');
-    
+
     if (lastBrace != -1) {
       content = content.substring(0, lastBrace) +
           eventCode +
