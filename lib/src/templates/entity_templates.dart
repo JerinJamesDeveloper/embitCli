@@ -83,7 +83,7 @@ class ${config.pascalCase}Entity extends Equatable {
         createdAt,
         updatedAt,
       ];
-
+      
   @override
   String toString() {
     return '${config.pascalCase}Entity(id: \$id, name: \$name)';

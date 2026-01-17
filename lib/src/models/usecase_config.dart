@@ -100,7 +100,7 @@ class UseCaseConfig {
   String get blocName => '${featurePascalCase}Bloc';
 
   /// Event name (e.g., 'ProductArchiveRequested')
-  String get eventName => '${featurePascalCase}${useCasePascalCase}Requested';
+  String get eventName => '$featurePascalCase${useCasePascalCase}Requested';
 
   // ==================== PATHS ====================
 

@@ -8,17 +8,26 @@ import 'dart:io';
 import '../models/usecase_config.dart';
 import '../templates/usecase_type_templates.dart';
 
-/// Generates usecase files and updates architecture
 class UseCaseGenerator {
   final UseCaseConfig config;
   final bool verbose;
 
   UseCaseGenerator(this.config, {this.verbose = false});
 
-  /// Generate usecase and update files
   Future<void> generate() async {
     _log('📝 Creating usecase file...');
     await _createUseCaseFile();
+
+    _log('🔗 Updating Domain Layer (Repository Interface)...');
+    await _updateRepositoryInterface();
+
+    _log('🔗 Updating Data Layer (Repository Implementation)...');
+    await _updateRepositoryImpl();
+
+    _log('🔗 Updating Data Layer (Remote Data Source)...');
+    await _updateRemoteDataSource();
+
+    // Optional: Local Data Source updates (similar logic if needed)
 
     _log('🔧 Updating DI container...');
     await _updateDIContainer();
@@ -35,12 +44,112 @@ class UseCaseGenerator {
   }
 
   void _log(String message) {
-    if (verbose) {
-      print(message);
+    if (verbose) print(message);
+  }
+
+  // ... (Keep _createUseCaseFile from previous code) ...
+
+  // ==================== UPDATE REPOSITORY INTERFACE ====================
+
+  Future<void> _updateRepositoryInterface() async {
+    final file = File('${config.projectPath}/${config.repositoryFilePath}');
+    if (!file.existsSync()) {
+      _log('  ⚠️ Repository interface not found at ${file.path}');
+      return;
+    }
+
+    var content = await file.readAsString();
+    
+    // Check duplication
+    if (content.contains(config.repositoryMethodName)) return;
+
+    final signature = UseCaseTypeTemplates.repositoryMethodSignature(config);
+    
+    // Insert before the last closing brace '}' of the abstract class
+    // We assume the file ends with the class closing brace
+    final lastBrace = content.lastIndexOf('}');
+    if (lastBrace != -1) {
+      content = content.substring(0, lastBrace) + 
+                '\n$signature\n' + 
+                content.substring(lastBrace);
+      await file.writeAsString(content);
+      _log('  ✓ Added method to ${config.repositoryName}');
     }
   }
 
-  // ==================== CREATE USECASE FILE ====================
+  // ==================== UPDATE REPOSITORY IMPLEMENTATION ====================
+
+  Future<void> _updateRepositoryImpl() async {
+    final path = '${config.projectPath}/${config.featureBasePath}/data/repositories/${config.featureSnakeCase}_repository_impl.dart';
+    final file = File(path);
+    
+    if (!file.existsSync()) {
+      _log('  ⚠️ Repository implementation not found');
+      return;
+    }
+
+    var content = await file.readAsString();
+    if (content.contains(config.repositoryMethodName)) return;
+
+    final impl = UseCaseTypeTemplates.repositoryMethodImpl(config);
+
+    final lastBrace = content.lastIndexOf('}');
+    if (lastBrace != -1) {
+      content = content.substring(0, lastBrace) + 
+                '\n$impl\n' + 
+                content.substring(lastBrace);
+      await file.writeAsString(content);
+      _log('  ✓ Added implementation to ${config.featurePascalCase}RepositoryImpl');
+    }
+  }
+
+  // ==================== UPDATE REMOTE DATA SOURCE ====================
+
+  Future<void> _updateRemoteDataSource() async {
+    final path = '${config.projectPath}/${config.featureBasePath}/data/datasources/${config.featureSnakeCase}_remote_datasource.dart';
+    final file = File(path);
+
+    if (!file.existsSync()) {
+      _log('  ⚠️ Remote data source not found');
+      return;
+    }
+
+    var content = await file.readAsString();
+    if (content.contains(config.repositoryMethodName)) return;
+
+    // 1. Update Abstract Interface
+    final signature = UseCaseTypeTemplates.remoteDataSourceMethodSignature(config);
+    // Find the end of the abstract class. 
+    // Heuristic: Look for "class ...Impl" and insert before that, OR look for the first closing brace if it's separate.
+    // Assuming Standard Embit structure: Abstract class first, then Impl class in same file.
+    
+    final implClassStart = content.indexOf('class ${config.featurePascalCase}RemoteDataSourceImpl');
+    
+    if (implClassStart != -1) {
+      // Find the closing brace of the Interface (which is before the Impl class)
+      final interfaceEnd = content.lastIndexOf('}', implClassStart);
+      if (interfaceEnd != -1) {
+        content = content.substring(0, interfaceEnd) + 
+                  '\n$signature\n' + 
+                  content.substring(interfaceEnd);
+      }
+    }
+
+    // 2. Update Implementation
+    final impl = UseCaseTypeTemplates.remoteDataSourceMethodImpl(config);
+    final lastBrace = content.lastIndexOf('}'); // End of file (Impl class)
+    
+    if (lastBrace != -1) {
+      content = content.substring(0, lastBrace) + 
+                '\n$impl\n' + 
+                content.substring(lastBrace);
+    }
+
+    await file.writeAsString(content);
+    _log('  ✓ Updated Remote Data Source');
+  }
+
+    // ==================== CREATE USECASE FILE ====================
 
   Future<void> _createUseCaseFile() async {
     final useCaseFile = File('${config.projectPath}/${config.useCaseFilePath}');
@@ -53,6 +162,7 @@ class UseCaseGenerator {
     await useCaseFile.writeAsString(content);
     _log('  ✓ Created ${config.useCaseFilePath}');
   }
+
 
   // ==================== UPDATE DI CONTAINER ====================
 

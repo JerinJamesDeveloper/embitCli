@@ -312,4 +312,117 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
   List<Object?> get props => [id];
 }
 ''';
+
+
+  // ==================== REPOSITORY SNIPPETS ====================
+
+  static String repositoryMethodSignature(UseCaseConfig config) {
+    final method = config.repositoryMethodName;
+    final type = config.returnType;
+    final params = _getParamsSignature(config);
+    
+    return '  Future<Either<Failure, $type>> $method($params);';
+  }
+
+  static String repositoryMethodImpl(UseCaseConfig config) {
+    // Basic implementation structure based on Clean Architecture
+    final method = config.repositoryMethodName;
+    final type = config.returnType;
+    final params = _getParamsSignature(config);
+    final args = _getArgsUsage(config);
+
+    // This is a generic robust implementation. 
+    // You can customize specific logic per type (create, delete, etc.) here if needed.
+    return '''
+  @override
+  Future<Either<Failure, $type>> $method($params) async {
+    if (!await _networkInfo.isConnected) {
+      return const Left(NetworkFailure());
+    }
+
+    try {
+      final result = await _remoteDataSource.$method($args);
+      // Optional: Cache logic here based on type
+      return Right(result${config.type == UseCaseType.delete ? '' : '.toEntity()'});
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
+    }
+  }
+''';
+  }
+
+  // ==================== DATASOURCE SNIPPETS ====================
+
+  static String remoteDataSourceMethodSignature(UseCaseConfig config) {
+    final method = config.repositoryMethodName;
+    // Remote returns Model, not Entity
+    final type = config.returnType == 'Unit' ? 'void' : '${config.featurePascalCase}Model';
+    final params = _getParamsSignature(config);
+    
+    return '  Future<$type> $method($params);';
+  }
+
+  static String remoteDataSourceMethodImpl(UseCaseConfig config) {
+    final method = config.repositoryMethodName;
+    final type = config.returnType == 'Unit' ? 'void' : '${config.featurePascalCase}Model';
+    final params = _getParamsSignature(config);
+    final endpoint = '\${ApiEndpoints.${config.featureCamelCase}s}'; // Generic guess
+
+    // Logic based on type
+    String httpCall;
+    switch (config.type) {
+      case UseCaseType.get:
+        httpCall = "await _dioClient.get('$endpoint/\$id');";
+        break;
+      case UseCaseType.getList:
+        httpCall = "await _dioClient.get('$endpoint');";
+        break;
+      case UseCaseType.create:
+        httpCall = "await _dioClient.post('$endpoint', data: { /* map params */ });";
+        break;
+      case UseCaseType.update:
+        httpCall = "await _dioClient.put('$endpoint/\$id', data: { /* map params */ });";
+        break;
+      case UseCaseType.delete:
+        httpCall = "await _dioClient.delete('$endpoint/\$id');";
+        break;
+      default:
+        httpCall = "await _dioClient.post('$endpoint'); // TODO: Verify method";
+    }
+
+    return '''
+  @override
+  Future<$type> $method($params) async {
+    try {
+      final response = $httpCall
+      ${config.type == UseCaseType.delete ? '' : '''
+      final data = response.data as Map<String, dynamic>;
+      final itemData = data['data'] as Map<String, dynamic>? ?? data;
+      return ${config.featurePascalCase}Model.fromJson(itemData);'''}
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to $method: \$e');
+    }
+  }
+''';
+  }
+
+  // ==================== HELPERS ====================
+
+  static String _getParamsSignature(UseCaseConfig config) {
+    if (config.type == UseCaseType.getList) return '';
+    if (config.type == UseCaseType.delete || config.type == UseCaseType.get) return 'String id';
+    
+    // For Create/Update/Custom, we generate named parameters
+    return '{required String id, /* TODO: Add other params */}'; 
+  }
+
+  static String _getArgsUsage(UseCaseConfig config) {
+    if (config.type == UseCaseType.getList) return '';
+    if (config.type == UseCaseType.delete || config.type == UseCaseType.get) return 'id';
+    return 'id: id';
+  }
 }

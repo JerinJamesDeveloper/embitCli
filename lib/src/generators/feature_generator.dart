@@ -33,7 +33,7 @@ class FeatureGenerator {
     await _generateDomainLayer();
 
     _log('📝 Generating data layer...');
-    await _generateDataLayer();
+    await _generateDataLayer(); 
 
     _log('📝 Generating presentation layer...');
     await _generatePresentationLayer();
