@@ -148,6 +148,7 @@ class UseCaseGenerator {
 
     if (!file.existsSync()) {
       _log('  ⚠️ Remote data source not found at: $path');
+      _printManualDIInstructions();
       return;
     }
 
@@ -187,15 +188,13 @@ class UseCaseGenerator {
     }
   }
 
-  // ==================== UPDATE DI CONTAINER ====================
+  // ==================== UPDATE DI CONTAINER (FIXED) ====================
 
   Future<void> _updateDIContainer() async {
-    final diFile =
-        File('${config.projectPath}/lib/core/di/injection_container.dart');
+    final diFile = File('${config.projectPath}/lib/core/di/injection_container.dart');
 
     if (!diFile.existsSync()) {
       print('  ⚠️  injection_container.dart not found. Skipping DI update.');
-      _printManualDIInstructions();
       return;
     }
 
@@ -207,69 +206,64 @@ class UseCaseGenerator {
       return;
     }
 
-    // Add import
-    final useCaseImport =
-        "import '../../features/${config.featureSnakeCase}/domain/usecases/${config.useCaseSnakeCase}_usecase.dart';";
-
+    // 1. Add Import (Standard logic)
+    final useCaseImport = "import '../../features/${config.featureSnakeCase}/domain/usecases/${config.useCaseSnakeCase}_usecase.dart';";
     final importRegex = RegExp(r"import '[^']+';");
     final matches = importRegex.allMatches(content).toList();
-
     if (matches.isNotEmpty) {
       final lastImportEnd = matches.last.end;
-      content =
-          '${content.substring(0, lastImportEnd)}\n$useCaseImport${content.substring(lastImportEnd)}';
+      content = '${content.substring(0, lastImportEnd)}\n$useCaseImport${content.substring(lastImportEnd)}';
     }
 
-    // Add usecase registration to feature init function
-    final featureFunctionName = '_init${config.featurePascalCase}Feature';
-    final useCaseRegistration = '''
+    // 2. Register UseCase (Standard logic)
+    final featureInitMarker = '_init${config.featurePascalCase}Feature';
+    final featureInitIndex = content.indexOf(featureInitMarker);
+
+    if (featureInitIndex != -1) {
+       // Look for the Repository comment to insert UseCases before it
+       final insertMarker = '// ========== Repository ==========';
+       final insertIndex = content.indexOf(insertMarker, featureInitIndex);
+
+       if (insertIndex != -1) {
+         final registration = '''
   sl.registerLazySingleton<${config.useCaseClassName}>(
     () => ${config.useCaseClassName}(sl()),
   );
-''';
-
-    // Find the feature init function
-    final functionPattern = RegExp(
-      'void $featureFunctionName\\(\\) \\{[\\s\\S]*?// ========== Use Cases ==========',
-      multiLine: true,
-    );
-
-    final functionMatch = functionPattern.firstMatch(content);
-
-    if (functionMatch != null) {
-      final insertPosition = functionMatch.end;
-      content = content.substring(0, insertPosition) +
-          '\n$useCaseRegistration' +
-          content.substring(insertPosition);
-    } else {
-      print('  ⚠️  Could not find feature init function. Add manually.');
-      _printManualDIInstructions();
-      await diFile.writeAsString(content); // Save import at least
-      return;
+  
+  ''';
+         content = content.substring(0, insertIndex) + registration + content.substring(insertIndex);
+       }
     }
 
-    // Add to BLoC constructor
-    final blocPattern = RegExp(
-      'sl\\.registerFactory<${config.blocName}>\\([\\s\\S]*?\\);',
-      multiLine: true,
-    );
-
-    final blocMatch = blocPattern.firstMatch(content);
-
-    if (blocMatch != null) {
-      final blocRegistration = blocMatch.group(0)!;
-
-      // Find the closing parenthesis before );
-      final lastParam = blocRegistration.lastIndexOf('),');
-
-      if (lastParam != -1) {
-        final newParam = '\n      ${config.useCaseCamelCase}UseCase: sl(),';
-        final updatedBloc = blocRegistration.substring(0, lastParam + 2) +
-            newParam +
-            blocRegistration.substring(lastParam + 2);
-
-        content = content.replaceFirst(blocRegistration, updatedBloc);
+    // 3. Add to BLoC (FIXED LOGIC)
+    // Find specifically where the Bloc is initialized: "=> FeedBloc("
+    final blocConstructorMarker = '=> ${config.blocName}(';
+    final blocIndex = content.indexOf(blocConstructorMarker);
+    
+    if (blocIndex != -1) {
+      // Find the closing parenthesis for THIS specific constructor.
+      // We search forward from the constructor start to find the next "),".
+      final endOfConstructor = content.indexOf('),', blocIndex);
+      
+      if (endOfConstructor != -1) {
+        // Insert inside the FeedBloc constructor, before it closes
+        final newParam = '      ${config.useCaseCamelCase}UseCase: sl(),\n';
+        
+        content = content.substring(0, endOfConstructor) + 
+                  newParam + 
+                  content.substring(endOfConstructor);
+      } else {
+        // Fallback for single-line formatting: "=> FeedBloc(a: sl()));"
+        final endOfLineConstructor = content.indexOf('));', blocIndex);
+        if (endOfLineConstructor != -1) {
+           final newParam = ', ${config.useCaseCamelCase}UseCase: sl()';
+           content = content.substring(0, endOfLineConstructor) + 
+                  newParam + 
+                  content.substring(endOfLineConstructor);
+        }
       }
+    } else {
+       _log('  ⚠️  Could not find BLoC constructor "$blocConstructorMarker" in DI file.');
     }
 
     await diFile.writeAsString(content);

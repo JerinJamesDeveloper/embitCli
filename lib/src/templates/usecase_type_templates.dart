@@ -291,7 +291,7 @@ class ${config.useCaseClassName} implements UseCase<${config.entityName}, ${conf
     // TODO: Add your validation logic here
     
     // TODO: Call repository method
-    return await _repository.${config.repositoryMethodName}(params);
+    return await _repository.${config.repositoryMethodName}(id : params.id);
   }
 }
 ''';
