@@ -235,36 +235,25 @@ class UseCaseGenerator {
        }
     }
 
-    // 3. Add to BLoC (FIXED LOGIC)
-    // Find specifically where the Bloc is initialized: "=> FeedBloc("
+    // 3. Add to BLoC (NEW STRATEGY: Insert at start)
     final blocConstructorMarker = '=> ${config.blocName}(';
     final blocIndex = content.indexOf(blocConstructorMarker);
     
     if (blocIndex != -1) {
-      // Find the closing parenthesis for THIS specific constructor.
-      // We search forward from the constructor start to find the next "),".
-      final endOfConstructor = content.indexOf('),', blocIndex);
+      // Calculate where to insert: immediately after "=> FeedBloc("
+      final insertionIndex = blocIndex + blocConstructorMarker.length;
       
-      if (endOfConstructor != -1) {
-        // Insert inside the FeedBloc constructor, before it closes
-        final newParam = '      ${config.useCaseCamelCase}UseCase: sl(),\n';
-        
-        content = content.substring(0, endOfConstructor) + 
-                  newParam + 
-                  content.substring(endOfConstructor);
-      } else {
-        // Fallback for single-line formatting: "=> FeedBloc(a: sl()));"
-        final endOfLineConstructor = content.indexOf('));', blocIndex);
-        if (endOfLineConstructor != -1) {
-           final newParam = ', ${config.useCaseCamelCase}UseCase: sl()';
-           content = content.substring(0, endOfLineConstructor) + 
-                  newParam + 
-                  content.substring(endOfLineConstructor);
-        }
-      }
+      // Add newline and indentation for clean formatting
+      final newParam = '\n      ${config.useCaseCamelCase}UseCase: sl(),';
+      
+      content = content.substring(0, insertionIndex) + 
+                newParam + 
+                content.substring(insertionIndex);
+                
     } else {
        _log('  ⚠️  Could not find BLoC constructor "$blocConstructorMarker" in DI file.');
     }
+
 
     await diFile.writeAsString(content);
     _log('  ✓ Updated injection_container.dart');
