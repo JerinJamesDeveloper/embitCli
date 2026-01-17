@@ -368,7 +368,7 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
     final method = config.repositoryMethodName;
     final type = config.returnType == 'Unit' ? 'void' : '${config.featurePascalCase}Model';
     final params = _getParamsSignature(config);
-    final endpoint = '\${ApiEndpoints.${config.featureCamelCase}s}'; // Generic guess
+    final endpoint = 'ApiEndpoints.${config.featureCamelCase}s'; // Generic guess
 
     // Logic based on type
     String httpCall;
