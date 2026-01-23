@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'commands/init_command.dart';
 import 'commands/feature_command.dart';
+import 'commands/model_command.dart';
 import 'commands/usecase_command.dart';
 
 void run(List<String> arguments) {
@@ -14,6 +15,7 @@ void run(List<String> arguments) {
     'init': InitCommand(),
     'feature': FeatureCommand(),
     'usecase': UseCaseCommand(),
+    'model': ModelCommand(),
   };
 
   for (final entry in commands.entries) {
@@ -30,7 +32,7 @@ void run(List<String> arguments) {
     }
 
     if (results['version'] == true) {
-      print('Embit CLI v0.7.5');
+      print('Embit CLI v0.8.0');
       print('Architecture enforcement for Flutter');
       return;
     }
@@ -57,7 +59,7 @@ void run(List<String> arguments) {
 void _printHelp(ArgParser parser) {
   print('''
 ╔════════════════════════════════════════╗
-║            Embit CLI v0.7.5           ║
+║            Embit CLI v0.8.0           ║
 ║    Architecture Enforcement Tool       ║
 ╚════════════════════════════════════════╝
 

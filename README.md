@@ -4,7 +4,7 @@ Here is the updated README documentation for **Embit CLI v0.7.0**, incorporating
 
 # Embit CLI Documentation
 
-## Version 0.7.0
+## Version 0.8.0
 
 [![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -73,7 +73,7 @@ dart pub global activate embit
 
 ```bash
 embit --version
-# Output: embit 0.7.0
+# Output: embit 0.8.0
 ```
 
 ---
