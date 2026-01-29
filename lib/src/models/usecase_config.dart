@@ -3,6 +3,7 @@
 /// Configuration model for generating usecases.
 library;
 
+import 'field_definition.dart';
 import '../utils/string_utils.dart';
 
 /// Types of usecases
@@ -53,6 +54,9 @@ class UseCaseConfig {
   /// Generate BLoC event automatically
   final bool withEvent;
 
+  /// Custom fields for the Params class
+  final List<FieldDefinition> fields;
+
   UseCaseConfig({
     required this.featureName,
     required this.useCaseName,
@@ -62,7 +66,11 @@ class UseCaseConfig {
     this.force = false,
     this.dryRun = false,
     this.withEvent = false,
+    this.fields = const [],
   });
+
+  /// Whether custom fields are defined
+  bool get hasCustomFields => fields.isNotEmpty;
 
   // ==================== COMPUTED PROPERTIES ====================
 
@@ -150,8 +158,139 @@ class UseCaseConfig {
     return type != UseCaseType.getList; // getList usually has no params
   }
 
+  // ==================== FIELD HELPERS ====================
+
+  /// Generates field declarations for Params/Event class
+  /// Example: "final String productName;\n  final String? description;"
+  String generateFieldDeclarations() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) => '  final ${f.dartType} ${f.name};').join('\n');
+  }
+
+  /// Generates constructor parameters for Params/Event class
+  /// Example: "required this.productName,\n    this.description,"
+  String generateConstructorParams() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) {
+      if (f.isRequired) {
+        return '    required this.${f.name},';
+      } else {
+        return '    this.${f.name},';
+      }
+    }).join('\n');
+  }
+
+  /// Generates Equatable props list items
+  /// Example: "productName, description, price"
+  String generatePropsItems() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) => f.name).join(', ');
+  }
+
+  /// Generates validation code for required String fields
+  String generateValidationCode() {
+    if (!hasCustomFields) return '';
+    final validations = <String>[];
+    
+    for (final field in fields) {
+      if (field.isRequired && field.type == 'String') {
+        validations.add('''
+    if (params.${field.name}.trim().isEmpty) {
+      return const Left(ValidationFailure(
+        message: '${_toTitleCase(field.name)} cannot be empty',
+        fieldErrors: {'${field.name}': ['${_toTitleCase(field.name)} is required']},
+      ));
+    }
+''');
+      }
+    }
+    
+    return validations.join('\n');
+  }
+
+  /// Generates repository method signature parameters
+  /// Example: "{\n    required String productName,\n    String? description,\n  }"
+  String generateRepositorySignatureParams() {
+    if (!hasCustomFields) return '';
+    final params = fields.map((f) {
+      if (f.isRequired) {
+        return '    required ${f.dartType} ${f.name},';
+      } else {
+        return '    ${f.dartType} ${f.name},';
+      }
+    }).join('\n');
+    return '{\n$params\n  }';
+  }
+
+  /// Generates repository call arguments
+  /// Example: "productName: params.productName,\n      description: params.description,"
+  String generateRepositoryCallArgs() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) {
+      if (f.type == 'String' && f.isRequired) {
+        return '      ${f.name}: params.${f.name}.trim(),';
+      } else if (f.type == 'String' && !f.isRequired) {
+        return '      ${f.name}: params.${f.name}?.trim(),';
+      } else {
+        return '      ${f.name}: params.${f.name},';
+      }
+    }).join('\n');
+  }
+
+  /// Generates data source method parameters (for signature)
+  String generateDataSourceParams() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) {
+      if (f.isRequired) {
+        return '    required ${f.dartType} ${f.name},';
+      } else {
+        return '    ${f.dartType} ${f.name},';
+      }
+    }).join('\n');
+  }
+
+  /// Generates API request body mappings
+  /// Example: "'product_name': productName,\n          if (description != null) 'description': description,"
+  String generateApiBodyParams() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) {
+      final jsonKey = _toSnakeCase(f.name);
+      if (f.isNullable) {
+        return "          if (${f.name} != null) '$jsonKey': ${f.name},";
+      } else {
+        return "          '$jsonKey': ${f.name},";
+      }
+    }).join('\n');
+  }
+
+  /// Generates event fields passed to params
+  /// Example: "name: event.name,\n        description: event.description,"
+  String generateEventToParamsArgs() {
+    if (!hasCustomFields) return '';
+    return fields.map((f) => '        ${f.name}: event.${f.name},').join('\n');
+  }
+
+  static String _toSnakeCase(String input) {
+    return input
+        .replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        )
+        .replaceFirst(RegExp(r'^_'), '');
+  }
+
+  static String _toTitleCase(String input) {
+    if (input.isEmpty) return input;
+    // Convert camelCase to Title Case
+    final spaced = input.replaceAllMapped(
+      RegExp(r'[A-Z]'),
+      (match) => ' ${match.group(0)}',
+    );
+    return spaced[0].toUpperCase() + spaced.substring(1);
+  }
+
   @override
   String toString() {
-    return 'UseCaseConfig(feature: $featureName, usecase: $useCaseName, type: ${type.value})';
+    return 'UseCaseConfig(feature: $featureName, usecase: $useCaseName, type: ${type.value}, fields: ${fields.length})';
   }
 }

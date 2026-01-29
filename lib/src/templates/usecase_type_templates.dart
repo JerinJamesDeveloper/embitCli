@@ -10,7 +10,14 @@ class UseCaseTypeTemplates {
   UseCaseTypeTemplates._();
 
   /// Generate usecase based on type
+  /// If custom fields are provided, uses those instead of default fields
   static String generate(UseCaseConfig config) {
+    // If custom fields are defined, use the custom fields template
+    if (config.hasCustomFields) {
+      return _customFieldsTemplate(config);
+    }
+
+    // Otherwise, use type-based default template
     switch (config.type) {
       case UseCaseType.get:
         return _getTemplate(config);
@@ -25,6 +32,58 @@ class UseCaseTypeTemplates {
       case UseCaseType.custom:
         return _customTemplate(config);
     }
+  }
+
+  /// Template that uses custom fields from config
+  static String _customFieldsTemplate(UseCaseConfig config) {
+    final fieldDeclarations = config.generateFieldDeclarations();
+    final constructorParams = config.generateConstructorParams();
+    final propsItems = config.generatePropsItems();
+    final validationCode = config.generateValidationCode();
+    final repositoryCallArgs = config.generateRepositoryCallArgs();
+
+    return '''
+/// ${config.useCasePascalCase} Use Case
+///
+/// ${config.useCasePascalCase} for ${config.featureName}.
+library;
+
+import 'package:dartz/dartz.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../../../core/errors/failures.dart';
+import '../../../../core/usecases/usecase.dart';
+import '../entities/${config.featureSnakeCase}_entity.dart';
+import '../repositories/${config.featureSnakeCase}_repository.dart';
+
+/// Parameters for ${config.useCaseClassName}
+class ${config.paramsClassName} extends Equatable {
+$fieldDeclarations
+
+  const ${config.paramsClassName}({
+$constructorParams
+  });
+
+  @override
+  List<Object?> get props => [$propsItems];
+}
+
+/// ${config.useCasePascalCase} use case
+class ${config.useCaseClassName} implements UseCase<${config.returnType}, ${config.paramsClassName}> {
+  final ${config.repositoryName} _repository;
+
+  ${config.useCaseClassName}(this._repository);
+
+  @override
+  Future<Either<Failure, ${config.returnType}>> call(${config.paramsClassName} params) async {
+    // Validation
+$validationCode
+    return await _repository.${config.repositoryMethodName}(
+$repositoryCallArgs
+    );
+  }
+}
+''';
   }
 
   /// Get single entity template
@@ -300,6 +359,12 @@ class ${config.useCaseClassName} implements UseCase<${config.entityName}, ${conf
   // ==================== BLOC EVENT TEMPLATES ====================
 
   static String blocEvent(UseCaseConfig config) {
+    // If custom fields are defined, use custom fields event template
+    if (config.hasCustomFields) {
+      return _eventCustomFieldsTemplate(config);
+    }
+
+    // Otherwise, use type-based default template
     switch (config.type) {
       case UseCaseType.get:
         return _eventGetTemplate(config);
@@ -314,6 +379,28 @@ class ${config.useCaseClassName} implements UseCase<${config.entityName}, ${conf
       case UseCaseType.custom:
         return _eventCustomTemplate(config);
     }
+  }
+
+  /// Event template that uses custom fields from config
+  static String _eventCustomFieldsTemplate(UseCaseConfig config) {
+    final fieldDeclarations = config.generateFieldDeclarations();
+    final constructorParams = config.generateConstructorParams();
+    final propsItems = config.generatePropsItems();
+
+    return '''
+
+/// Event to ${config.useCasePascalCase}
+class ${config.eventName} extends ${config.featurePascalCase}Event {
+$fieldDeclarations
+
+  const ${config.eventName}({
+$constructorParams
+  });
+
+  @override
+  List<Object?> get props => [$propsItems];
+}
+''';
   }
 
   static String _eventGetTemplate(UseCaseConfig config) => '''
@@ -425,6 +512,12 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
   // ==================== BLOC EVENT HANDLER TEMPLATES ====================
 
   static String blocEventHandler(UseCaseConfig config) {
+    // If custom fields are defined, use custom fields handler template
+    if (config.hasCustomFields) {
+      return _handlerCustomFieldsTemplate(config);
+    }
+
+    // Otherwise, use type-based default template
     switch (config.type) {
       case UseCaseType.get:
         return _handlerGetTemplate(config);
@@ -439,6 +532,49 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
       case UseCaseType.custom:
         return _handlerCustomTemplate(config);
     }
+  }
+
+  /// Handler template that uses custom fields from config
+  static String _handlerCustomFieldsTemplate(UseCaseConfig config) {
+    final eventName = config.eventName;
+    final handlerName = '_on${config.useCasePascalCase}';
+    final useCaseField = '_${config.useCaseCamelCase}UseCase';
+    final paramsClass = config.paramsClassName;
+    final featurePascal = config.featurePascalCase;
+    final featureCamel = config.featureCamelCase;
+    final operationName = config.useCaseCamelCase;
+    final eventToParamsArgs = config.generateEventToParamsArgs();
+
+    return '''
+
+  Future<void> $handlerName(
+    $eventName event,
+    Emitter<${featurePascal}State> emit,
+  ) async {
+    final currentItems = _getCurrentItems();
+    emit(${featurePascal}Operating(
+      ${featureCamel}s: currentItems,
+      operation: ${featurePascal}Operation.$operationName,
+    ));
+
+    final result = await $useCaseField(
+      $paramsClass(
+$eventToParamsArgs
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(_mapFailureToState(failure, currentItems)),
+      ($featureCamel) {
+        final updatedItems = [...currentItems, $featureCamel];
+        emit(${featurePascal}OperationSuccess(
+          ${featureCamel}s: updatedItems,
+          message: '${config.useCasePascalCase} completed successfully',
+        ));
+      },
+    );
+  }
+''';
   }
 
   static String _handlerGetTemplate(UseCaseConfig config) {
@@ -825,6 +961,16 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
     final method = config.repositoryMethodName;
     final entity = config.entityName;
 
+    // If custom fields are defined, use custom signature
+    if (config.hasCustomFields) {
+      final paramsSignature = config.generateRepositorySignatureParams();
+      return '''
+  /// ${config.useCasePascalCase}
+  Future<Either<Failure, ${config.returnType}>> $method($paramsSignature);
+''';
+    }
+
+    // Otherwise, use type-based default signature
     switch (config.type) {
       case UseCaseType.get:
         return '''
@@ -877,6 +1023,12 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
   // ==================== REPOSITORY IMPLEMENTATION TEMPLATES ====================
 
   static String repositoryMethodImpl(UseCaseConfig config) {
+    // If custom fields are defined, use custom implementation template
+    if (config.hasCustomFields) {
+      return _repoCustomFieldsTemplate(config);
+    }
+
+    // Otherwise, use type-based default template
     switch (config.type) {
       case UseCaseType.get:
         return _repoGetTemplate(config);
@@ -891,6 +1043,45 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
       case UseCaseType.custom:
         return _repoCustomTemplate(config);
     }
+  }
+
+  /// Repository implementation template that uses custom fields from config
+  static String _repoCustomFieldsTemplate(UseCaseConfig config) {
+    final method = config.repositoryMethodName;
+    final entity = config.entityName;
+    final featurePascal = config.featurePascalCase;
+    final paramsSignature = config.generateRepositorySignatureParams();
+    
+    // Generate parameter forwarding for datasource call
+    final paramNames = config.fields.map((f) => '${f.name}: ${f.name},').join('\n        ');
+
+    return '''
+  @override
+  Future<Either<Failure, $entity>> $method($paramsSignature) async {
+    if (!await _networkInfo.isConnected) {
+      return const Left(NetworkFailure());
+    }
+
+    try {
+      final result = await _remoteDataSource.$method(
+        $paramNames
+      );
+      await _localDataSource.cache$featurePascal(result);
+      return Right(result.toEntity());
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(
+        message: e.message,
+        fieldErrors: e.errors,
+      ));
+    } on NotFoundException {
+      return const Left(NotFoundFailure());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(UnknownFailure(message: e.toString()));
+    }
+  }
+''';
   }
 
   /// Repository GET single entity implementation
@@ -1112,6 +1303,18 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
   // ==================== REMOTE DATASOURCE SIGNATURE TEMPLATES ====================
 
   static String remoteDataSourceMethodSignature(UseCaseConfig config) {
+    // If custom fields are defined, use custom signature
+    if (config.hasCustomFields) {
+      final method = config.repositoryMethodName;
+      final model = '${config.featurePascalCase}Model';
+      final paramsSignature = config.generateRepositorySignatureParams();
+      return '''
+  /// ${config.useCasePascalCase}
+  Future<$model> $method($paramsSignature);
+''';
+    }
+
+    // Otherwise, use type-based default signature
     switch (config.type) {
       case UseCaseType.get:
         return _remoteSignatureGet(config);
@@ -1201,6 +1404,12 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
   // ==================== REMOTE DATASOURCE IMPLEMENTATION TEMPLATES ====================
 
   static String remoteDataSourceMethodImpl(UseCaseConfig config) {
+    // If custom fields are defined, use custom implementation template
+    if (config.hasCustomFields) {
+      return _remoteImplCustomFields(config);
+    }
+
+    // Otherwise, use type-based default template
     switch (config.type) {
       case UseCaseType.get:
         return _remoteImplGet(config);
@@ -1215,6 +1424,39 @@ class ${config.eventName} extends ${config.featurePascalCase}Event {
       case UseCaseType.custom:
         return _remoteImplCustom(config);
     }
+  }
+
+  /// Remote datasource implementation template that uses custom fields
+  static String _remoteImplCustomFields(UseCaseConfig config) {
+    final method = config.repositoryMethodName;
+    final model = '${config.featurePascalCase}Model';
+    final featureCamel = config.featureCamelCase;
+    final featureSnake = config.featureSnakeCase;
+    final paramsSignature = config.generateRepositorySignatureParams();
+    final apiBodyParams = config.generateApiBodyParams();
+
+    return '''
+  @override
+  Future<$model> $method($paramsSignature) async {
+    try {
+      final response = await _dioClient.post(
+        ApiEndpoints.${featureCamel}s,
+        data: {
+$apiBodyParams
+        },
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final itemData = data['data'] as Map<String, dynamic>? ?? data;
+
+      return $model.fromJson(itemData);
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: 'Failed to $method $featureSnake: \$e');
+    }
+  }
+''';
   }
 
   /// Remote GET single entity implementation

@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 
 import 'base_command.dart';
+import '../models/field_definition.dart';
 import '../models/usecase_config.dart';
 import '../validators/project_validator.dart';
 import '../validators/usecase_validator.dart';
@@ -62,7 +63,14 @@ class UseCaseCommand extends BaseCommand {
       abbr: 'i',
       help: 'Interactive mode - prompts for options',
       negatable: false,
-    );
+    )
+    // Field options (same as model command)
+    ..addMultiOption('string',
+        help: 'Add String field (use name? for nullable)')
+    ..addMultiOption('int', help: 'Add int field')
+    ..addMultiOption('double', help: 'Add double field')
+    ..addMultiOption('bool', help: 'Add bool field')
+    ..addMultiOption('datetime', help: 'Add DateTime field');
 
   @override
   Future<void> execute(ArgResults results, {bool verbose = false}) async {
@@ -171,6 +179,26 @@ class UseCaseCommand extends BaseCommand {
 
     final useCaseType = UseCaseType.fromString(typeString);
 
+    // ========== Parse Custom Fields ==========
+    List<FieldDefinition> fields = [];
+
+    _parseFields(results, 'string', 'String', fields);
+    _parseFields(results, 'int', 'int', fields);
+    _parseFields(results, 'double', 'double', fields);
+    _parseFields(results, 'bool', 'bool', fields);
+    _parseFields(results, 'datetime', 'DateTime', fields);
+
+    // Show parsed fields if verbose
+    if (verbose && fields.isNotEmpty) {
+      print('');
+      print('📋 Custom Fields:');
+      for (final field in fields) {
+        final nullable = field.isNullable ? '?' : '';
+        final required = field.isRequired ? ' (required)' : '';
+        print('   • ${field.name}: ${field.type}$nullable$required');
+      }
+    }
+
     // ========== Get Project Name ==========
     final projectName = ProjectValidator.getProjectName(projectPath);
 
@@ -184,6 +212,7 @@ class UseCaseCommand extends BaseCommand {
       force: force,
       dryRun: dryRun,
       withEvent: withEvent,
+      fields: fields,
     );
 
     // ========== Dry Run ==========
@@ -274,8 +303,32 @@ class UseCaseCommand extends BaseCommand {
     print('   📝 lib/core/di/injection_container.dart');
     print('   📝 ${config.blocFilePath}');
     
+    // Show custom fields if any
+    if (config.hasCustomFields) {
+      print('');
+      print('   Custom Params Fields:');
+      for (final field in config.fields) {
+        final nullable = field.isNullable ? '?' : '';
+        final required = field.isRequired ? ' (required)' : '';
+        print('   • ${field.name}: ${field.type}$nullable$required');
+      }
+    }
+    
     print('');
     print('   Repository method to implement:');
     print('   ⚠️  Future<Either<Failure, ${config.returnType}>> ${config.repositoryMethodName}(...)');
+  }
+
+  void _parseFields(
+    ArgResults results,
+    String option,
+    String type,
+    List<FieldDefinition> fields,
+  ) {
+    if (results.wasParsed(option)) {
+      for (var input in results[option] as List<String>) {
+        fields.add(FieldDefinition.parse(input, type));
+      }
+    }
   }
 }

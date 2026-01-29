@@ -1,12 +1,12 @@
-Here is the updated README documentation for **Embit CLI v0.7.0**, incorporating the new `usecase` command features, auto-wiring capabilities, and updated workflow.
+Here is the updated README documentation for **Embit CLI v0.8.1**, incorporating the new `usecase` command features, auto-wiring capabilities, and updated workflow.
 
 ***
 
 # Embit CLI Documentation
 
-## Version 0.8.0
+## Version 0.8.1
 
-[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
+[![Version](https://img.shields.io/badge/version-0.8.1-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -14,6 +14,7 @@ Here is the updated README documentation for **Embit CLI v0.7.0**, incorporating
 ## Table of Contents
 
 - [Overview](#overview)
+- [What's New in 0.8.1](#whats-new-in-081)
 - [What's New in 0.7.0](#whats-new-in-070)
 - [Installation](#installation)
 - [Commands](#commands)
@@ -34,6 +35,60 @@ Here is the updated README documentation for **Embit CLI v0.7.0**, incorporating
 ## Overview
 
 **Embit CLI** is a powerful command-line interface tool designed to accelerate Flutter/Dart development by automating project scaffolding, feature generation, and enforcing Clean Architecture principles.
+
+---
+
+## What's New in 0.8.1
+
+### 🚀 New Features
+
+| Feature | Description |
+|---------|-------------|
+| **Custom Params Fields** | Define custom fields for usecase Params class using `--string`, `--int`, `--double`, `--bool`, `--datetime` options |
+| **Field Syntax** | Support for required (`fieldName`) and nullable (`fieldName?`) fields |
+| **Auto-Validation** | Automatically generates validation code for required String fields |
+| **Full Stack Support** | Custom fields propagate to BLoC events, repository methods, and data source implementations |
+
+### 🔄 Changes from 0.8.0
+
+```diff
++ Added --string, --int, --double, --bool, --datetime options to usecase command
++ Added FieldDefinition support in UseCaseConfig
++ Updated UseCaseTypeTemplates to generate code from custom fields
++ Custom fields now work with --with-event flag for BLoC event generation
+```
+
+### 📝 Usage Example
+
+```bash
+# Create a usecase with custom fields
+embit usecase -f products -n create_product -t custom \
+  --string productName \
+  --string "description?" \
+  --double price \
+  --int quantity \
+  --with-event
+```
+
+**Generated Params Class:**
+```dart
+class CreateProductParams extends Equatable {
+  final String productName;
+  final String? description;
+  final double price;
+  final int quantity;
+
+  const CreateProductParams({
+    required this.productName,
+    this.description,
+    required this.price,
+    required this.quantity,
+  });
+
+  @override
+  List<Object?> get props => [productName, description, price, quantity];
+}
+```
 
 ---
 
@@ -73,7 +128,7 @@ dart pub global activate embit
 
 ```bash
 embit --version
-# Output: embit 0.8.0
+# Output: embit 0.8.1
 ```
 
 ---
@@ -164,6 +219,11 @@ embit usecase --feature <feature> --name <name> [options]
 | `--with-event` | — | Generate corresponding BLoC event | `false` |
 | `--interactive` | `-i` | Guided creation mode | `false` |
 | `--dry-run` | — | Preview changes without writing files | `false` |
+| `--string` | — | Add String field to Params class | — |
+| `--int` | — | Add int field to Params class | — |
+| `--double` | — | Add double field to Params class | — |
+| `--bool` | — | Add bool field to Params class | — |
+| `--datetime` | — | Add DateTime field to Params class | — |
 
 #### Supported Types
 
@@ -239,6 +299,14 @@ embit usecase -f orders -n get_order_details -t get
 
 # Granular UseCase (Custom Logic)
 embit usecase -f auth -n verify_biometrics -t custom --with-event
+
+# UseCase with Custom Fields
+embit usecase -f orders -n create_order -t custom \
+  --string orderId \
+  --string "notes?" \
+  --double totalAmount \
+  --int itemCount \
+  --with-event
 ```
 
 ---
@@ -250,7 +318,7 @@ embit usecase -f auth -n verify_biometrics -t custom --with-event
 Project-level configuration file.
 
 ```yaml
-version: 0.7.0
+version: 0.8.1
 
 project:
   name: my_app
@@ -272,7 +340,21 @@ usecases:
 
 ## Changelog
 
-### Version 0.7.0 (Latest)
+### Version 0.8.1 (Latest)
+
+#### Added
+- ✨ **Custom Params Fields**: Define custom fields for Params class using `--string`, `--int`, `--double`, `--bool`, `--datetime` options
+- ✨ **Field Syntax**: Required (`fieldName`) and nullable (`fieldName?`) field modifiers
+- ✨ **Auto-Validation**: Generated validation code for required String fields
+- ✨ **Full Stack Propagation**: Custom fields in BLoC events, repository methods, and data source implementations
+
+### Version 0.8.0
+
+#### Added
+- ✨ Model command improvements
+- ✨ Enhanced template generation
+
+### Version 0.7.0
 
 #### Added
 - ✨ **New `usecase` command**: Generate individual use cases.

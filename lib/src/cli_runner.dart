@@ -59,7 +59,7 @@ void run(List<String> arguments) {
 void _printHelp(ArgParser parser) {
   print('''
 ╔════════════════════════════════════════╗
-║            Embit CLI v0.8.0           ║
+║            Embit CLI v0.8.0            ║
 ║    Architecture Enforcement Tool       ║
 ╚════════════════════════════════════════╝
 
