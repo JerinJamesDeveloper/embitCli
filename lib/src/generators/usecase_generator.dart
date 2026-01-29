@@ -37,7 +37,6 @@ class UseCaseGenerator {
       _log('📋 Adding BLoC event...');
       await _addBlocEvent();
 
-      
       _log('📊 Updating BLoC state...');
       await _updateBlocState();
     }
@@ -87,7 +86,7 @@ class UseCaseGenerator {
     var content = await file.readAsString();
 
     // 2. Strict Check: Ensure we check for "methodName(" to avoid matching comments or substrings
-    if (content.contains('${config.repositoryMethodName}(')) {
+    if (content.contains('${config.repositoryMethodName}(') && !config.force) {
       _log(
           '  ⚠️  Method "${config.repositoryMethodName}" already exists in implementation. Skipping.');
       return;
@@ -126,7 +125,7 @@ class UseCaseGenerator {
 
     var content = await file.readAsString();
 
-    if (content.contains('${config.repositoryMethodName}(')) {
+    if (content.contains('${config.repositoryMethodName}(') && !config.force) {
       _log('  ⚠️  Method already exists in Repository Interface.');
       return;
     }
@@ -156,7 +155,7 @@ class UseCaseGenerator {
     }
 
     var content = await file.readAsString();
-    if (content.contains('${config.repositoryMethodName}(')) return;
+    if (content.contains('${config.repositoryMethodName}(') && !config.force) return;
 
     // 1. Update Interface (Insert before "class ...Impl")
     final signature =
@@ -205,7 +204,7 @@ class UseCaseGenerator {
     var content = await diFile.readAsString();
 
     // Check if already registered
-    if (content.contains(config.useCaseClassName)) {
+    if (content.contains(config.useCaseClassName) && !config.force) {
       _log('  ⚠️  UseCase already registered in DI container');
       return;
     }
@@ -306,7 +305,7 @@ class UseCaseGenerator {
     var content = await blocFile.readAsString();
 
     // Check if already added
-    if (content.contains('_${config.useCaseCamelCase}UseCase')) {
+    if (content.contains('_${config.useCaseCamelCase}UseCase') && !config.force) {
       _log('  ⚠️  UseCase already added to BLoC');
       return;
     }
@@ -415,7 +414,7 @@ class UseCaseGenerator {
     var content = await stateFile.readAsString();
 
     // Check if operation already exists
-    if (content.contains('${config.useCaseCamelCase},')) {
+    if (content.contains('${config.useCaseCamelCase},') && !config.force) {
       _log('  ⚠️  Operation "${config.useCaseCamelCase}" already exists in state');
       return;
     }
@@ -466,7 +465,7 @@ class UseCaseGenerator {
     var content = await eventFile.readAsString();
 
     // Check if event already exists
-    if (content.contains(config.eventName)) {
+    if (content.contains(config.eventName) && !config.force) {
       _log('  ⚠️  Event already exists');
       return;
     }
@@ -495,7 +494,7 @@ class UseCaseGenerator {
     final handlerName = '_on${config.useCasePascalCase}';
 
     // Check if handler already exists
-    if (content.contains(handlerName)) {
+    if (content.contains(handlerName) && !config.force) {
       _log('  ⚠️  Handler already exists');
       return;
     }
@@ -526,7 +525,7 @@ class UseCaseGenerator {
     final eventRegistration = UseCaseTypeTemplates.blocEventRegistration(config);
 
     // Check if already registered
-    if (content.contains('on<${config.eventName}>')) {
+    if (content.contains('on<${config.eventName}>') && !config.force) {
       _log('  ⚠️  Event already registered in constructor');
       return;
     }
