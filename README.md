@@ -1,30 +1,29 @@
-Here is the updated README documentation for **Embit CLI v0.8.1**, incorporating the new `usecase` command features, auto-wiring capabilities, and updated workflow.
-
-***
-
 # Embit CLI Documentation
 
-## Version 0.8.1
+## Version 0.9.0
 
-[![Version](https://img.shields.io/badge/version-0.8.1-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [What's New in 0.8.1](#whats-new-in-081)
-- [What's New in 0.7.0](#whats-new-in-070)
+- [Overview](#overview-section)
+  - [What's New in 0.9.0](#whats-new-in-090)
+  - [What's New in 0.8.0](#whats-new-in-080)
 - [Installation](#installation)
 - [Commands](#commands)
   - [init](#init)
   - [feature](#feature)
   - [usecase](#usecase)
+  - [generate](#generate)
   - [build](#build)
   - [clean](#clean)
 - [Feature Command Deep Dive](#feature-command-deep-dive)
 - [UseCase Command Deep Dive](#usecase-command-deep-dive)
+- [Generate Command Deep Dive](#generate-command-deep-dive)
+- [JSON Schema Reference](#json-schema-reference)
 - [Examples](#examples)
 - [Configuration](#configuration)
 - [Changelog](#changelog)
@@ -32,91 +31,29 @@ Here is the updated README documentation for **Embit CLI v0.8.1**, incorporating
 
 ---
 
-## Overview
+## Overview Section
 
 **Embit CLI** is a powerful command-line interface tool designed to accelerate Flutter/Dart development by automating project scaffolding, feature generation, and enforcing Clean Architecture principles.
 
----
+### Key Features
 
-## What's New in 0.8.1
+- 🏗️ **Clean Architecture Scaffolding** - Generate features with proper layer separation
+- 🔌 **Auto-Wiring** - Automatic DI registration, routing, and BLoC integration
+- 📄 **JSON Schema Generation** - Define features declaratively in JSON
+- ⚡ **Smart Templates** - Pre-built templates for common patterns
+- 🧭 **Navigation Integration** - Automatic bottom nav and routing setup
 
-### 🚀 New Features
-
-| Feature | Description |
-|---------|-------------|
-| **Custom Params Fields** | Define custom fields for usecase Params class using `--string`, `--int`, `--double`, `--bool`, `--datetime` options |
-| **Field Syntax** | Support for required (`fieldName`) and nullable (`fieldName?`) fields |
-| **Auto-Validation** | Automatically generates validation code for required String fields |
-| **Full Stack Support** | Custom fields propagate to BLoC events, repository methods, and data source implementations |
-
-### 🔄 Changes from 0.8.0
-
-```diff
-+ Added --string, --int, --double, --bool, --datetime options to usecase command
-+ Added FieldDefinition support in UseCaseConfig
-+ Updated UseCaseTypeTemplates to generate code from custom fields
-+ Custom fields now work with --with-event flag for BLoC event generation
-```
-
-### 📝 Usage Example
-
-```bash
-# Create a usecase with custom fields
-embit usecase -f products -n create_product -t custom \
-  --string productName \
-  --string "description?" \
-  --double price \
-  --int quantity \
-  --with-event
-```
-
-**Generated Params Class:**
-```dart
-class CreateProductParams extends Equatable {
-  final String productName;
-  final String? description;
-  final double price;
-  final int quantity;
-
-  const CreateProductParams({
-    required this.productName,
-    this.description,
-    required this.price,
-    required this.quantity,
-  });
-
-  @override
-  List<Object?> get props => [productName, description, price, quantity];
-}
-```
-
----
-
-## What's New in 0.7.0
-
-### 🚀 New Features
-
-| Feature | Description |
-|---------|-------------|
-| **Granular UseCase Generation** | Create individual use cases for existing features without regenerating the whole module |
-| **Automatic Architecture Wiring** | Automatically registers new use cases in **DI** (`injection_container`) and **BLoC** |
-| **Smart Templates** | Pre-built templates for `get`, `get-list`, `create`, `update`, `delete`, and `custom` types |
-| **Event Auto-Generation** | Optionally generate BLoC events and handlers automatically via `--with-event` |
-| **Interactive Mode** | Updated interactive prompts for granular component creation |
-
-### 🔄 Changes from 0.6.0
-
-```diff
-+ Added 'usecase' top-level command
-+ Added --with-event flag to auto-generate BLoC events
-+ Added --type option to specify use case template (get, create, etc.)
-+ Improved DI injection logic to handle dynamic insertions
-+ Updated feature generator to align with new use case structures
-```
 
 ---
 
 ## Installation
+
+### Via Direct Git Repo
+
+```bash
+dart pub global activate --source git https://github.com/JerinJamesMedas/embit-cli-v3.git
+
+```
 
 ### Via Dart Pub
 
@@ -128,9 +65,134 @@ dart pub global activate embit
 
 ```bash
 embit --version
-# Output: embit 0.8.1
+# Output: embit 0.9.0
 ```
 
+---
+
+## What's New in 0.9.0
+
+### 🚀 JSON-Based Behavioral Compiler
+
+The biggest update yet! Define your entire feature using a JSON schema, and Embit will generate everything automatically.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  📄 JSON Schema (templates/products.json)                   │
+│  ↓                                                          │
+│  🔍 Schema Parser → Validates & Extracts UseCases           │
+│  ↓                                                          │
+│  ⚡ Feature Generator → Complete Clean Architecture         │
+│  ↓                                                          │
+│  ✅ Ready-to-use Feature with all layers wired!             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### ✨ New Features
+
+| Feature | Description |
+|---------|-------------|
+| **`generate` Command** | Generate complete features from JSON schema files |
+| **Schema Parser** | Validates and parses JSON schemas with helpful error messages |
+| **UseCase Extraction** | Automatically extracts usecases from `dataSource` and `action` fields |
+| **Type Inference** | Infers usecase types (get, get-list, create, update, delete) from naming |
+| **Entity Generation** | Generates entity from schema-defined fields |
+| **Multi-Screen Support** | Define multiple screens per feature with different types |
+| **Widget Templates** | Pre-built widget templates (CardList, GridView, Form, etc.) |
+| **Bottom Sheet Support** | Define reusable bottom sheets in schema |
+| **API Endpoint Generation** | Auto-generates API endpoint constants |
+
+### 🔄 Changes from 0.8.1
+
+```diff
++ Added 'generate' command for JSON schema-based generation
++ Added templates/ folder creation during 'init'
++ Added example.json template during 'init'
++ Added FeatureSchema, ScreenSchema, WidgetSchema, ActionSchema models
++ Added UseCaseSchema extraction from JSON
++ Added SchemaParser with validation and warnings
++ Added SchemaFeatureGenerator integrating with UseCaseTypeTemplates
++ Added screen type templates (infinite_list, detail, form, static, grid)
++ Added bottomSheets support in schema
++ Added entity field definitions in schema
++ Added explicit usecases array support in schema
++ Updated init command to create templates folder with examples
+```
+
+### 📝 Quick Example
+
+**1. Create a schema file:**
+
+```json
+// templates/orders.json
+{
+  "feature": {
+    "name": "orders",
+    "route": "/orders",
+    "addToBottomNav": true,
+    "icon": "receipt",
+    "label": "Orders"
+  },
+  "screens": [
+    {
+      "name": "OrderList",
+      "type": "infinite_list",
+      "route": "/orders",
+      "dataSource": "getOrders",
+      "pullToRefresh": true,
+      "widgets": [
+        {
+          "name": "orderList",
+          "template": "CardList",
+          "dataSource": "getOrders",
+          "onTap": {
+            "type": "navigation",
+            "navTo": "/orders/{id}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OrderDetail",
+      "type": "detail",
+      "route": "/orders/:orderId",
+      "dataSource": "getOrderById"
+    }
+  ]
+}
+```
+
+**2. Generate the feature:**
+
+```bash
+embit generate -s templates/orders.json
+```
+
+**3. Result:** Complete feature with 2 screens, 2 usecases, full BLoC, DI wiring, and routing!
+
+---
+
+## What's New in 0.8.0
+
+### 🚀 Custom Params Fields
+
+| Feature | Description |
+|---------|-------------|
+| **Custom Params Fields** | Define custom fields using `--string`, `--int`, `--double`, `--bool`, `--datetime` |
+| **Field Syntax** | Support for required (`fieldName`) and nullable (`fieldName?`) fields |
+| **Auto-Validation** | Automatically generates validation code for required String fields |
+| **Full Stack Support** | Custom fields propagate to BLoC events, repository methods, and data source |
+
+### 📝 Usage Example
+
+```bash
+embit usecase -f products -n create_product -t custom \
+  --string productName \
+  --string "description?" \
+  --double price \
+  --int quantity \
+  --with-event
+```
 ---
 
 ## Commands
@@ -143,25 +205,42 @@ Initialize a new Embit project or configure an existing Flutter project.
 embit init [options]
 ```
 
+**New in 0.9.0:** Creates `templates/` folder with example JSON schemas.
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--force` | Force initialization | `false` |
+| `--skip-pubspec` | Skip updating pubspec.yaml | `false` |
+
 ### feature
 
-Generate a new feature module with complete architecture and optional navigation.
+Generate a new feature module with complete architecture.
 
 ```bash
 embit feature --name <feature_name> [options]
 ```
 
-See [Feature Command Deep Dive](#feature-command-deep-dive) for details.
+See [Feature Command Deep Dive](#feature-command-deep-dive).
 
 ### usecase
 
-**[NEW]** Create a specific use case for an existing feature and wire it into the architecture.
+Create a specific use case for an existing feature.
 
 ```bash
 embit usecase --feature <feature_name> --name <usecase_name> [options]
 ```
 
-See [UseCase Command Deep Dive](#usecase-command-deep-dive) for details.
+See [UseCase Command Deep Dive](#usecase-command-deep-dive).
+
+### generate
+
+**[NEW in 0.9.0]** Generate complete feature from JSON schema.
+
+```bash
+embit generate --schema <path_to_schema.json> [options]
+```
+
+See [Generate Command Deep Dive](#generate-command-deep-dive).
 
 ### build
 
@@ -183,7 +262,7 @@ embit clean [options]
 
 ## Feature Command Deep Dive
 
-Generate a new feature module.
+Generate a new feature module with the standard structure.
 
 ```bash
 embit feature --name <feature_name> [options]
@@ -193,17 +272,50 @@ embit feature --name <feature_name> [options]
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
-| `--name` | `-n` | Feature name (required) | — |
-| `--nav-bar` | — | Include in navigation bar | `false` |
-| `--icon` | `-i` | Nav bar icon | `Icons.circle_outlined` |
-| `--label` | `-l` | Nav bar label | Feature Name |
-| `--interactive` | `-i` | Guided mode | `false` |
+| `--name` | `-n` | Feature name in snake_case (required) | — |
+| `--nav-bar` | — | Add to bottom navigation bar | `false` |
+| `--icon` | — | Navigation bar icon | `Icons.folder_outlined` |
+| `--label` | — | Navigation bar label | Feature name |
+| `--force` | `-f` | Force overwrite existing | `false` |
+| `--dry-run` | — | Preview without creating | `false` |
+| `--interactive` | `-i` | Guided creation mode | `false` |
+
+#### Generated Structure
+
+```
+lib/features/<feature_name>/
+├── data/
+│   ├── datasources/
+│   │   ├── <feature>_remote_datasource.dart
+│   │   └── <feature>_local_datasource.dart
+│   ├── models/
+│   │   └── <feature>_model.dart
+│   └── repositories/
+│       └── <feature>_repository_impl.dart
+├── domain/
+│   ├── entities/
+│   │   └── <feature>_entity.dart
+│   ├── repositories/
+│   │   └── <feature>_repository.dart
+│   └── usecases/
+│       ├── get_<feature>_usecase.dart
+│       └── ...
+└── presentation/
+    ├── bloc/
+    │   ├── <feature>_bloc.dart
+    │   ├── <feature>_event.dart
+    │   └── <feature>_state.dart
+    ├── pages/
+    │   └── <feature>_page.dart
+    └── widgets/
+        └── ...
+```
 
 ---
 
 ## UseCase Command Deep Dive
 
-The `usecase` command allows you to expand existing features by adding specific business logic units. It handles the tedious work of creating files, updating the repository interface, registering in Dependency Injection, and injecting into the BLoC.
+Add specific business logic to existing features with automatic architecture wiring.
 
 ```bash
 embit usecase --feature <feature> --name <name> [options]
@@ -214,53 +326,331 @@ embit usecase --feature <feature> --name <name> [options]
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
 | `--feature` | `-f` | Target feature name (required) | — |
-| `--name` | `-n` | Use case name (snake_case) (required) | — |
-| `--type` | `-t` | Template type (`get`, `get-list`, `create`, `update`, `delete`, `custom`) | `custom` |
-| `--with-event` | — | Generate corresponding BLoC event | `false` |
-| `--interactive` | `-i` | Guided creation mode | `false` |
-| `--dry-run` | — | Preview changes without writing files | `false` |
-| `--string` | — | Add String field to Params class | — |
-| `--int` | — | Add int field to Params class | — |
-| `--double` | — | Add double field to Params class | — |
-| `--bool` | — | Add bool field to Params class | — |
-| `--datetime` | — | Add DateTime field to Params class | — |
+| `--name` | `-n` | UseCase name in snake_case (required) | — |
+| `--type` | `-t` | Template type | `custom` |
+| `--with-event` | `-e` | Generate BLoC event & handler | `false` |
+| `--string` | — | Add String field to Params | — |
+| `--int` | — | Add int field to Params | — |
+| `--double` | — | Add double field to Params | — |
+| `--bool` | — | Add bool field to Params | — |
+| `--datetime` | — | Add DateTime field to Params | — |
+| `--force` | — | Force overwrite existing | `false` |
+| `--dry-run` | — | Preview without creating | `false` |
 
 #### Supported Types
 
-| Type | Description |
-|------|-------------|
-| `get` | Fetches a single entity by ID |
-| `get-list` | Fetches a list of entities (NoParams) |
-| `create` | Accepts params to create an entity |
-| `update` | Accepts ID and nullable fields for update |
-| `delete` | Accepts ID to delete an entity |
-| `custom` | Generic template with TODOs |
+| Type | Description | Generated Pattern |
+|------|-------------|-------------------|
+| `get` | Fetch single entity | `getEntityById(id)` |
+| `get-list` | Fetch list of entities | `getEntities(page, limit, ...)` |
+| `create` | Create new entity | `createEntity(params)` |
+| `update` | Update existing entity | `updateEntity(id, params)` |
+| `delete` | Delete entity | `deleteEntity(id)` |
+| `custom` | Custom logic | Generic template |
 
-#### Example: Creating an Archive UseCase
+#### Auto-Wiring
+
+The usecase command automatically:
+- ✅ Creates usecase file with proper template
+- ✅ Updates repository interface with method signature
+- ✅ Updates repository implementation with method body
+- ✅ Updates remote data source with API call
+- ✅ Registers in DI container (`injection_container.dart`)
+- ✅ Injects into BLoC constructor
+- ✅ Adds BLoC event and handler (if `--with-event`)
+- ✅ Updates state operation enum (if `--with-event`)
+
+---
+
+## Generate Command Deep Dive
+
+**[NEW in 0.9.0]** The most powerful command! Generate complete features from JSON schema files.
 
 ```bash
-embit usecase -f products -n archive_product --type update --with-event
+embit generate --schema <path> [options]
 ```
 
-**Output:**
+#### Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--schema` | `-s` | Path to JSON schema file (required) | — |
+| `--force` | `-f` | Force overwrite existing | `false` |
+| `--dry-run` | — | Preview without creating | `false` |
+| `--skip-di` | — | Skip DI container update | `false` |
+| `--skip-routes` | — | Skip route updates | `false` |
+| `--verbose` | — | Detailed output | `false` |
+
+#### How It Works
+
 ```
-🚀 Creating usecase: archive_product
-   Feature: products
-   Type: Update
-   Event: ✓ Will generate
+1. Parse JSON schema
+2. Extract feature configuration
+3. Extract all screens
+4. Extract usecases from:
+   - screen.dataSource
+   - widget.dataSource
+   - widget.action (type: "usecase")
+   - widget.onTap (type: "usecase")
+5. Infer usecase types from naming
+6. Generate complete feature using templates
+7. Wire everything (DI, routes, navigation)
+```
 
-📝 Generated:
-   ✓ lib/features/products/domain/usecases/archive_product_usecase.dart
-   ✓ Added event to products_event.dart
+#### What Gets Generated
 
-🔧 Updated:
-   ✓ lib/core/di/injection_container.dart (Registered UseCase)
-   ✓ lib/features/products/presentation/bloc/products_bloc.dart (Injected dependency)
+| Layer | Files |
+|-------|-------|
+| **Domain** | Entity, Repository interface, All UseCases |
+| **Data** | Model, Remote DataSource, Local DataSource, Repository Impl |
+| **Presentation** | BLoC (with all events/states), Pages (per screen), Widgets |
+| **Wiring** | DI registration, Routes, Navigation bar, API endpoints |
 
-📋 Next steps:
-   1. Add repository method in products_repository.dart
-   2. Implement in products_repository_impl.dart
-   3. Add event handler in products_bloc.dart
+#### Example Usage
+
+```bash
+# Basic generation
+embit generate -s templates/products.json
+
+# Preview first
+embit generate -s templates/products.json --dry-run
+
+# Force overwrite
+embit generate -s templates/products.json --force
+
+# Verbose output
+embit generate -s templates/products.json --verbose
+```
+
+---
+
+## JSON Schema Reference
+
+### Schema Structure
+
+```json
+{
+  "feature": { ... },        // Feature configuration
+  "entity": { ... },         // Entity fields (optional)
+  "screens": [ ... ],        // Screen definitions
+  "bottomSheets": { ... },   // Reusable bottom sheets (optional)
+  "usecases": [ ... ],       // Explicit usecase definitions (optional)
+  "apiEndpoints": { ... }    // API endpoint mappings (optional)
+}
+```
+
+### Feature Configuration
+
+```json
+{
+  "feature": {
+    "name": "products",           // Required: snake_case name
+    "route": "/products",         // Base route path
+    "addToBottomNav": true,       // Add to bottom navigation
+    "icon": "shopping_bag",       // Material icon name
+    "label": "Products"           // Navigation label
+  }
+}
+```
+
+### Entity Definition
+
+```json
+{
+  "entity": {
+    "name": "Product",
+    "fields": [
+      { "name": "id", "type": "String", "required": true },
+      { "name": "name", "type": "String", "required": true },
+      { "name": "description", "type": "String", "nullable": true },
+      { "name": "price", "type": "double", "required": true },
+      { "name": "stock", "type": "int", "default": "0" },
+      { "name": "isActive", "type": "bool", "default": "true" },
+      { "name": "tags", "type": "List<String>", "default": "const []" },
+      { "name": "createdAt", "type": "DateTime", "required": true }
+    ]
+  }
+}
+```
+
+### Screen Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `static` | Fixed content | Settings, About pages |
+| `infinite_list` | Paginated scrolling list | Product list, Feed |
+| `detail` | Single item display | Product detail, Profile |
+| `form` | Input form | Create/Edit screens |
+| `grid` | Grid layout | Gallery, Categories |
+
+### Screen Definition
+
+```json
+{
+  "screens": [
+    {
+      "name": "ProductList",
+      "type": "infinite_list",
+      "route": "/products",
+      "dataSource": "getProducts",      // → Creates getProducts usecase
+      "pullToRefresh": true,
+      "hasSearch": true,
+      "appBar": {
+        "title": "Products",
+        "showBack": false,
+        "actions": [
+          {
+            "icon": "search",
+            "action": { "type": "navigation", "navTo": "/search" }
+          }
+        ]
+      },
+      "state": [
+        { "name": "searchQuery", "type": "String", "default": "''" },
+        { "name": "sortBy", "type": "String", "default": "'newest'" }
+      ],
+      "widgets": [ ... ]
+    }
+  ]
+}
+```
+
+### Widget Templates
+
+| Template | Description | Props |
+|----------|-------------|-------|
+| `CardList` | Vertical card list | `itemTemplate`, `dataSource` |
+| `GridView` | Grid layout | `crossAxisCount`, `childAspectRatio` |
+| `HorizontalScroller` | Horizontal scroll list | `height`, `itemWidth` |
+| `ListView` | Simple list | `itemTemplate` |
+| `SearchField` | Search input | `placeholder`, `autofocus` |
+| `TextField` | Text input | `label`, `maxLength`, `maxLines` |
+| `Button` | Action button | `label`, `icon`, `style` |
+| `FilterChips` | Filter options | `options` |
+| `Carousel` | Image carousel | `height`, `showIndicators` |
+| `ExpansionTile` | Expandable section | `title`, `initiallyExpanded` |
+| `EmptyState` | Empty placeholder | `icon`, `title`, `message` |
+
+### Widget Definition
+
+```json
+{
+  "name": "productGrid",
+  "template": "GridView",
+  "dataSource": "getProducts",
+  "props": {
+    "crossAxisCount": 2,
+    "childAspectRatio": 0.7
+  },
+  "itemTemplate": "ProductCard",
+  "onTap": {
+    "type": "navigation",
+    "navTo": "/products/{id}"
+  },
+  "onLongPress": {
+    "type": "bottomSheet",
+    "name": "quickActions"
+  },
+  "visibleWhen": "products.isNotEmpty",
+  "enabledWhen": "!isLoading"
+}
+```
+
+### Action Types
+
+| Type | Description | Properties |
+|------|-------------|------------|
+| `navigation` | Navigate to route | `navTo`, `navReplace` |
+| `usecase` | Call a usecase | `name`, `params`, `onSuccess`, `onError` |
+| `event` | Emit BLoC event | `name`, `params` |
+| `setState` | Update local state | `name`, value mapping |
+| `bottomSheet` | Show bottom sheet | `name` |
+| `dialog` | Show dialog | `name` |
+| `share` | Share content | `params` |
+| `snackbar` | Show snackbar | `message`, `type` |
+
+### Action Definition
+
+```json
+{
+  "action": {
+    "type": "usecase",
+    "name": "addToCart",
+    "params": ["productId", "quantity"],
+    "confirmation": {
+      "title": "Add to Cart?",
+      "message": "Add this item to your cart?",
+      "confirmLabel": "Add",
+      "cancelLabel": "Cancel"
+    },
+    "onSuccess": {
+      "showSnackbar": {
+        "message": "Added to cart!",
+        "type": "success"
+      },
+      "navTo": "/cart"
+    },
+    "onError": {
+      "showSnackbar": {
+        "message": "Failed to add",
+        "type": "error"
+      }
+    }
+  }
+}
+```
+
+### Explicit UseCase Definition
+
+```json
+{
+  "usecases": [
+    {
+      "name": "getProducts",
+      "type": "get-list",
+      "params": [
+        { "name": "page", "type": "int", "nullable": true },
+        { "name": "limit", "type": "int", "nullable": true },
+        { "name": "search", "type": "String", "nullable": true }
+      ],
+      "generateEvent": true
+    },
+    {
+      "name": "addToCart",
+      "type": "custom",
+      "params": [
+        { "name": "productId", "type": "String", "required": true },
+        { "name": "quantity", "type": "int", "default": "1" }
+      ],
+      "generateEvent": true
+    }
+  ]
+}
+```
+
+### Bottom Sheets
+
+```json
+{
+  "bottomSheets": {
+    "productFilters": {
+      "title": "Filter Products",
+      "widgets": [
+        {
+          "name": "priceRange",
+          "template": "RangeSlider",
+          "props": { "label": "Price", "min": 0, "max": 1000 }
+        },
+        {
+          "name": "applyButton",
+          "template": "Button",
+          "props": { "label": "Apply Filters" },
+          "action": { "type": "event", "name": "applyFilters" }
+        }
+      ]
+    }
+  }
+}
 ```
 
 ---
@@ -270,44 +660,52 @@ embit usecase -f products -n archive_product --type update --with-event
 ### Complete Workflow Example
 
 ```bash
-# 1. Initialize new project
-embit init --name ecommerce_app --template clean
+# 1. Initialize project
+embit init
 
-# 2. Create core features
-embit feature --name products --nav-bar --label "Products"
-embit feature --name cart --nav-bar --label "Cart"
+# 2. Create feature via JSON schema
+embit generate -s templates/products.json
 
-# 3. Add specific business logic to 'products' feature
-# Create a usecase to get featured products
-embit usecase -f products -n get_featured_products -t get-list
-
-# Create a usecase to archive a product, with BLoC event wiring
+# 3. Add additional usecase to existing feature
 embit usecase -f products -n archive_product -t update --with-event
 
-# 4. Interactive mode for complex logic
-embit usecase -f cart -n validate_coupon --interactive
-```
+# 4. Create simple feature without schema
+embit feature -n settings
 
-### Quick Commands Reference
-
-```bash
-# Standard Feature
-embit feature -n orders
-
-# Granular UseCase (Get Single)
-embit usecase -f orders -n get_order_details -t get
-
-# Granular UseCase (Custom Logic)
-embit usecase -f auth -n verify_biometrics -t custom --with-event
-
-# UseCase with Custom Fields
-embit usecase -f orders -n create_order -t custom \
-  --string orderId \
-  --string "notes?" \
-  --double totalAmount \
-  --int itemCount \
+# 5. Add usecase with custom fields
+embit usecase -f settings -n update_preferences -t update \
+  --string theme \
+  --bool "notifications?" \
   --with-event
 ```
+
+### Quick Reference
+
+```bash
+# Generate from schema
+embit generate -s templates/orders.json
+
+# Preview generation
+embit generate -s templates/orders.json --dry-run
+
+# Create simple feature
+embit feature -n profile --nav-bar
+
+# Add usecase to feature
+embit usecase -f profile -n update_avatar -t update --with-event
+
+# Usecase with custom fields
+embit usecase -f orders -n create_order -t create \
+  --string customerId \
+  --double totalAmount \
+  --with-event
+```
+
+### Sample Schema Files
+
+After running `embit init`, check `templates/` folder for:
+- `example.json` - Basic example schema
+- `README.md` - Schema documentation
 
 ---
 
@@ -318,7 +716,7 @@ embit usecase -f orders -n create_order -t custom \
 Project-level configuration file.
 
 ```yaml
-version: 0.8.1
+version: 0.9.0
 
 project:
   name: my_app
@@ -332,44 +730,62 @@ features:
   default_path: lib/features/
   
 usecases:
-  auto_register_di: true    # Automatically update injection_container.dart
-  auto_update_bloc: true    # Automatically inject into BLoC constructor
+  auto_register_di: true
+  auto_update_bloc: true
+
+generate:
+  templates_path: templates/
+  auto_extract_usecases: true
+  generate_events: true
 ```
 
 ---
 
 ## Changelog
 
-### Version 0.8.1 (Latest)
+### Version 0.9.0 (Latest)
 
 #### Added
-- ✨ **Custom Params Fields**: Define custom fields for Params class using `--string`, `--int`, `--double`, `--bool`, `--datetime` options
-- ✨ **Field Syntax**: Required (`fieldName`) and nullable (`fieldName?`) field modifiers
-- ✨ **Auto-Validation**: Generated validation code for required String fields
-- ✨ **Full Stack Propagation**: Custom fields in BLoC events, repository methods, and data source implementations
+- ✨ **`generate` Command**: Generate complete features from JSON schema files
+- ✨ **Schema Parser**: Validates JSON schemas with helpful error messages and warnings
+- ✨ **UseCase Extraction**: Automatically extracts usecases from `dataSource` and `action` fields
+- ✨ **Type Inference**: Infers usecase types from naming conventions
+- ✨ **Entity Generation**: Generates entity from schema-defined fields
+- ✨ **Multi-Screen Support**: Define multiple screens with different types per feature
+- ✨ **Widget Templates**: Pre-built templates (CardList, GridView, Form, etc.)
+- ✨ **Bottom Sheet Support**: Define reusable bottom sheets in schema
+- ✨ **Screen Types**: `static`, `infinite_list`, `detail`, `form`, `grid`
+- ✨ **Templates Folder**: `embit init` now creates `templates/` with examples
+- ✨ **Explicit UseCases**: Optional `usecases` array for precise control
+- ✨ **API Endpoints**: Auto-generates endpoint constants
+
+#### Changed
+- 📦 `init` command now creates `templates/` folder with `example.json`
+- 📦 Improved error messages with suggestions
+- 📦 Better validation for all commands
+
+### Version 0.8.1
+
+#### Added
+- ✨ Custom Params fields (`--string`, `--int`, `--double`, `--bool`, `--datetime`)
+- ✨ Field syntax for required/nullable fields
+- ✨ Auto-validation for required String fields
 
 ### Version 0.8.0
 
-#### Added
 - ✨ Model command improvements
 - ✨ Enhanced template generation
 
 ### Version 0.7.0
 
-#### Added
-- ✨ **New `usecase` command**: Generate individual use cases.
-- ✨ **Auto-Wiring**: The CLI now modifies `injection_container.dart` and `_bloc.dart` files to inject new use cases automatically.
-- ✨ **Templates**: Added specific templates for CRUD operations.
-- ✨ **Event Generation**: Added `--with-event` flag to create BLoC events for new use cases.
-
-#### Changed
-- 📦 `feature` command now generates a more modular DI structure to support dynamic insertion.
-- 📦 Updated validation logic to ensure features exist before adding use cases.
+- ✨ `usecase` command with auto-wiring
+- ✨ BLoC event generation (`--with-event`)
+- ✨ CRUD templates
 
 ### Version 0.6.0
 
-- ✨ Navigation bar integration.
-- ✨ Custom icons and labels support.
+- ✨ Navigation bar integration
+- ✨ Custom icons and labels
 
 ---
 
@@ -377,24 +793,61 @@ usecases:
 
 ### Common Issues
 
-**Issue: "Feature does not exist"**
+**Issue: "Schema file not found"**
 ```bash
-# You must create the feature before adding a usecase
-embit feature -n my_feature
-embit usecase -f my_feature -n my_usecase
+# Ensure path is correct (relative to project root)
+embit generate -s templates/products.json  # ✓
+embit generate -s ./templates/products.json  # ✓
 ```
 
-**Issue: "UseCase already exists"**
+**Issue: "Invalid JSON"**
 ```bash
-# Use --force to overwrite an existing usecase file
-embit usecase -f products -n get_products --force
+# Validate your JSON syntax
+# Use a JSON validator or IDE with JSON support
+# Common issues:
+#   - Trailing commas
+#   - Missing quotes on keys
+#   - Single quotes instead of double
 ```
 
-**Issue: "DI Injection failed"**
+**Issue: "Feature already exists"**
 ```bash
-# Embit relies on specific markers (comments) in your code to inject dependencies.
-# If you deleted comments like "// ========== Use Cases ==========", 
-# the CLI might print manual instructions instead of auto-updating.
+# Use --force to overwrite
+embit generate -s templates/products.json --force
+```
+
+**Issue: "UseCase type inference failed"**
+```bash
+# Use explicit usecases array in schema
+{
+  "usecases": [
+    { "name": "myUseCase", "type": "custom", ... }
+  ]
+}
+```
+
+**Issue: "DI injection failed"**
+```bash
+# Ensure injection_container.dart has required markers:
+# "// ==================== END OF FEATURE ===================="
+# If markers are missing, CLI will print manual instructions
+```
+
+**Issue: "Route update failed"**
+```bash
+# Ensure route_names.dart has markers:
+# "// ============== ADD YOUR ROUTES =============="
+# "// ============== ADD YOUR ROUTE NAMES =============="
+```
+
+### Debug Mode
+
+```bash
+# Use --verbose for detailed output
+embit generate -s templates/products.json --verbose
+
+# Use --dry-run to preview without creating files
+embit generate -s templates/products.json --dry-run
 ```
 
 ---
@@ -403,7 +856,30 @@ embit usecase -f products -n get_products --force
 
 - 📖 [Documentation](https://embit.dev/docs)
 - 🐛 [Issue Tracker](https://github.com/embit-cli/issues)
+- 💬 [Discussions](https://github.com/embit-cli/discussions)
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 ## Made with ❤️ by the Embit Team
+```
+
+---
+
+## Summary of 0.9.0 Changes
+
+| Area | What's New |
+|------|------------|
+| **Command** | New `generate` command for JSON schema generation |
+| **Schema** | Complete JSON schema format for features |
+| **Extraction** | Auto-extracts usecases from dataSource/actions |
+| **Inference** | Infers usecase types from naming conventions |
+| **Templates** | Pre-built widget templates |
+| **Screens** | Multiple screen types (list, detail, form, etc.) |
+| **Init** | Creates templates folder with examples |
+| **Wiring** | Complete auto-wiring (DI, routes, nav, endpoints) |
