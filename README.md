@@ -1,8 +1,8 @@
 # Embit CLI Documentation
 
-## Version 0.9.0
+## Version 0.9.1
 
-[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
+[![Version](https://img.shields.io/badge/version-0.9.1-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -10,6 +10,7 @@
 ## Table of Contents
 
 - [Overview](#overview-section)
+  - [What's New in 0.9.1](#whats-new-in-091)
   - [What's New in 0.9.0](#whats-new-in-090)
   - [What's New in 0.8.0](#whats-new-in-080)
 - [Installation](#installation)
@@ -67,6 +68,23 @@ dart pub global activate embit
 embit --version
 # Output: embit 0.9.0
 ```
+
+---
+
+## What's New in 0.9.1
+
+### 🚀 Auto-state Generation for Models
+
+Added the ability to automatically generate BLoC states when creating a new model. This streamlines the process of adding new data entities to an existing feature.
+
+```bash
+embit model -f products -n Product --string name --with-state
+```
+
+This will:
+1. Generate Entity and Model files.
+2. Automatically append `ProductLoading`, `ProductLoaded`, etc., to your BLoC state file.
+3. Automatically import the new Entity in your BLoC file.
 
 ---
 
@@ -743,7 +761,13 @@ generate:
 
 ## Changelog
 
-### Version 0.9.0 (Latest)
+### Version 0.9.1 (Latest)
+
+#### Added
+- ✨ **Model State Generation**: New `--with-state` flag for `embit model` command to auto-generate BLoC states.
+- ✨ **Auto-Import**: Automatically adds entity imports to BLoC files when using `--with-state`.
+
+### Version 0.9.0
 
 #### Added
 - ✨ **`generate` Command**: Generate complete features from JSON schema files

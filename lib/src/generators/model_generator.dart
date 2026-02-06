@@ -2,7 +2,8 @@ import 'dart:io';
 import '../models/field_definition.dart';
 
 class ModelGenerator {
-  Future<void> generate(ModelGeneratorConfig config, {bool verbose = false}) async {
+  Future<void> generate(ModelGeneratorConfig config,
+      {bool verbose = false}) async {
     final featurePath = 'lib/features/${_toSnakeCase(config.featureName)}';
     final entityPath = '$featurePath/domain/entities';
     final modelPath = '$featurePath/data/models';
@@ -13,6 +14,12 @@ class ModelGenerator {
 
     await _createEntity(config, entityPath, verbose: verbose);
     await _createModel(config, modelPath, verbose: verbose);
+
+    if (config.withState) {
+      await _updateBlocState(
+          config, 'lib/features/${_toSnakeCase(config.featureName)}',
+          verbose: verbose);
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -145,7 +152,8 @@ class ModelGenerator {
     // ─────────────────────────────────────────────────────────────────────────
     buffer.writeln('/// $modelNameReadable Entity');
     buffer.writeln('///');
-    buffer.writeln('/// Core business entity representing a ${config.modelName.toLowerCase()} in the system.');
+    buffer.writeln(
+        '/// Core business entity representing a ${config.modelName.toLowerCase()} in the system.');
     buffer.writeln('/// Pure Dart class with no external dependencies.');
     buffer.writeln('library;');
     buffer.writeln();
@@ -155,7 +163,8 @@ class ModelGenerator {
     // ─────────────────────────────────────────────────────────────────────────
     // Class Declaration
     // ─────────────────────────────────────────────────────────────────────────
-    buffer.writeln('/// $modelNameReadable entity representing the core ${config.modelName.toLowerCase()} data');
+    buffer.writeln(
+        '/// $modelNameReadable entity representing the core ${config.modelName.toLowerCase()} data');
     buffer.writeln('class $className extends Equatable {');
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -175,7 +184,8 @@ class ModelGenerator {
       if (field.isRequired) {
         buffer.writeln('    required this.${field.name},');
       } else if (field.hasDefault) {
-        buffer.writeln('    this.${field.name} = ${_formatDefaultValue(field)},');
+        buffer
+            .writeln('    this.${field.name} = ${_formatDefaultValue(field)},');
       } else {
         buffer.writeln('    this.${field.name},');
       }
@@ -194,7 +204,8 @@ class ModelGenerator {
     buffer.writeln('  }) {');
     buffer.writeln('    return $className(');
     for (final field in config.fields) {
-      buffer.writeln('      ${field.name}: ${field.name} ?? this.${field.name},');
+      buffer
+          .writeln('      ${field.name}: ${field.name} ?? this.${field.name},');
     }
     buffer.writeln('    );');
     buffer.writeln('  }');
@@ -245,7 +256,8 @@ class ModelGenerator {
     // ─────────────────────────────────────────────────────────────────────────
     buffer.writeln('  @override');
     buffer.writeln('  String toString() {');
-    final toStringFields = config.fields.take(3).map((f) => '${f.name}: \$${f.name}').join(', ');
+    final toStringFields =
+        config.fields.take(3).map((f) => '${f.name}: \$${f.name}').join(', ');
     buffer.writeln("    return '$className($toStringFields)';");
     buffer.writeln('  }');
 
@@ -268,10 +280,115 @@ class ModelGenerator {
     final entityFileName = '${_toSnakeCase(config.modelName)}_entity';
     final modelFileName = '${_toSnakeCase(config.modelName)}_model';
 
-    final content = _generateModelContent(config, modelName, entityName, entityFileName);
+    final content =
+        _generateModelContent(config, modelName, entityName, entityFileName);
 
     await File('$path/$modelFileName.dart').writeAsString(content);
     print('✔ Model created: $path/$modelFileName.dart');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // BLOC STATE UPDATE
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _updateBlocState(
+    ModelGeneratorConfig config,
+    String featurePath, {
+    bool verbose = false,
+  }) async {
+    final blocStart = '$featurePath/presentation/bloc';
+    final stateFile = File('$blocStart/${config.featureSnakeCase}_state.dart');
+    final blocFile = File('$blocStart/${config.featureSnakeCase}_bloc.dart');
+
+    if (!stateFile.existsSync()) {
+      if (verbose)
+        print('⚠ Warning: Bloc state file not found at ${stateFile.path}');
+      return;
+    }
+
+    // 1. Update State File
+    var stateContent = await stateFile.readAsString();
+    final newStates = _generateNewStates(config);
+
+    // Check if states already exist (simple check)
+    if (stateContent.contains('class ${config.modelPascalCase}Loaded')) {
+      if (verbose) print('ℹ States for ${config.modelName} already exist.');
+    } else {
+      stateContent += '\n$newStates';
+      await stateFile.writeAsString(stateContent);
+      print('✔ Updated states in: ${stateFile.path}');
+    }
+
+    // 2. Update Bloc File (Imports)
+    if (blocFile.existsSync()) {
+      var blocContent = await blocFile.readAsString();
+      final entityImport =
+          "import '../../domain/entities/${config.modelSnakeCase}_entity.dart';";
+
+      if (!blocContent.contains(entityImport)) {
+        // Find last import
+        final lines = blocContent.split('\n');
+        final lastImportIndex =
+            lines.lastIndexWhere((line) => line.startsWith('import '));
+
+        if (lastImportIndex != -1) {
+          lines.insert(lastImportIndex + 1, entityImport);
+          await blocFile.writeAsString(lines.join('\n'));
+          print('✔ Added import to: ${blocFile.path}');
+        }
+      }
+    }
+  }
+
+  String _generateNewStates(ModelGeneratorConfig config) {
+    final model = config.modelPascalCase;
+    final entity = '${model}Entity';
+    final feature = config.featurePascalCase;
+    final modelCamel = _toCamelCase(config.modelName);
+
+    return '''
+// -------------------- $model States --------------------
+
+class ${model}Initial extends ${feature}State {}
+
+class ${model}Loading extends ${feature}State {}
+
+class ${model}Loaded extends ${feature}State {
+  final $entity $modelCamel;
+  const ${model}Loaded(this.$modelCamel);
+}
+
+class ${model}ListLoaded extends ${feature}State {
+  final List<$entity> ${modelCamel}s;
+  const ${model}ListLoaded(this.${modelCamel}s);
+}
+
+class ${model}OperationSuccess extends ${feature}State {
+  final String message;
+  final $entity? $modelCamel;
+  const ${model}OperationSuccess(this.message, {this.$modelCamel});
+}
+
+class ${model}Error extends ${feature}State {
+  final String message;
+  const ${model}Error(this.message);
+}
+''';
+  }
+
+  String _toCamelCase(String input) {
+    if (input.isEmpty) return '';
+    if (input.contains('_')) {
+      final parts = input.split('_');
+      return parts.first.toLowerCase() +
+          parts
+              .skip(1)
+              .map((w) => w.isNotEmpty
+                  ? w[0].toUpperCase() + w.substring(1).toLowerCase()
+                  : '')
+              .join();
+    }
+    return input[0].toLowerCase() + input.substring(1);
   }
 
   String _generateModelContent(
@@ -290,7 +407,8 @@ class ModelGenerator {
     buffer.writeln('/// $modelNameReadable Model');
     buffer.writeln('///');
     buffer.writeln('/// Data model that extends $entityName.');
-    buffer.writeln('/// Handles JSON serialization/deserialization for API communication.');
+    buffer.writeln(
+        '/// Handles JSON serialization/deserialization for API communication.');
     buffer.writeln('library;');
     buffer.writeln();
     buffer.writeln("import '../../domain/entities/$entityFileName.dart';");
@@ -310,7 +428,8 @@ class ModelGenerator {
       if (field.isRequired) {
         buffer.writeln('    required super.${field.name},');
       } else if (field.hasDefault) {
-        buffer.writeln('    super.${field.name} = ${_formatDefaultValue(field)},');
+        buffer.writeln(
+            '    super.${field.name} = ${_formatDefaultValue(field)},');
       } else {
         buffer.writeln('    super.${field.name},');
       }
@@ -322,10 +441,12 @@ class ModelGenerator {
     // fromJson Factory
     // ─────────────────────────────────────────────────────────────────────────
     buffer.writeln('  /// Creates a $modelName from JSON map');
-    buffer.writeln('  factory $modelName.fromJson(Map<String, dynamic> json) {');
+    buffer
+        .writeln('  factory $modelName.fromJson(Map<String, dynamic> json) {');
     buffer.writeln('    return $modelName(');
     for (final field in config.fields) {
-      buffer.writeln('      ${field.name}: ${_generateFromJsonParsing(field)},');
+      buffer
+          .writeln('      ${field.name}: ${_generateFromJsonParsing(field)},');
     }
     buffer.writeln('    );');
     buffer.writeln('  }');
@@ -338,7 +459,8 @@ class ModelGenerator {
     buffer.writeln('  Map<String, dynamic> toJson() {');
     buffer.writeln('    return {');
     for (final field in config.fields) {
-      buffer.writeln("      '${field.jsonKey}': ${_generateToJsonValue(field)},");
+      buffer
+          .writeln("      '${field.jsonKey}': ${_generateToJsonValue(field)},");
     }
     buffer.writeln('    };');
     buffer.writeln('  }');
@@ -397,7 +519,8 @@ class ModelGenerator {
     buffer.writeln('  }) {');
     buffer.writeln('    return $modelName(');
     for (final field in config.fields) {
-      buffer.writeln('      ${field.name}: ${field.name} ?? this.${field.name},');
+      buffer
+          .writeln('      ${field.name}: ${field.name} ?? this.${field.name},');
     }
     buffer.writeln('    );');
     buffer.writeln('  }');
@@ -411,8 +534,10 @@ class ModelGenerator {
       buffer.writeln('  static DateTime? _parseDateTime(dynamic value) {');
       buffer.writeln('    if (value == null) return null;');
       buffer.writeln('    if (value is DateTime) return value;');
-      buffer.writeln('    if (value is String) return DateTime.tryParse(value);');
-      buffer.writeln('    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);');
+      buffer
+          .writeln('    if (value is String) return DateTime.tryParse(value);');
+      buffer.writeln(
+          '    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);');
       buffer.writeln('    return null;');
       buffer.writeln('  }');
     }

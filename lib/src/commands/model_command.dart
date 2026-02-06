@@ -5,26 +5,32 @@ import '../generators/model_generator.dart';
 import 'base_command.dart';
 
 class ModelCommand extends BaseCommand {
-@override
+  @override
   String get name => 'model';
 
   @override
-  String get description => 'Create a new model and entity with specified fields';
+  String get description =>
+      'Create a new model and entity with specified fields';
 
   @override
   ArgParser get argParser => ArgParser()
-    ..addOption('name', abbr: 'n', help: 'Name of the model (e.g., Product, User)')
+    ..addOption('name',
+        abbr: 'n', help: 'Name of the model (e.g., Product, User)')
     ..addOption('feature', abbr: 'f', help: 'Feature this model belongs to')
     ..addMultiOption('string',
-        help: 'Add String field (use name? for nullable, name=default for default)')
+        help:
+            'Add String field (use name? for nullable, name=default for default)')
     ..addMultiOption('int', help: 'Add int field')
     ..addMultiOption('double', help: 'Add double field')
     ..addMultiOption('bool', help: 'Add bool field (e.g., isActive=true)')
     ..addMultiOption('datetime', help: 'Add DateTime field')
-    ..addFlag('help', abbr: 'h', help: 'Show help for model command', negatable: false);
+    ..addFlag('with-state',
+        help: 'Generate BLoC states for this model', negatable: false)
+    ..addFlag('help',
+        abbr: 'h', help: 'Show help for model command', negatable: false);
 
   @override
-  Future<void> execute(ArgResults results, { bool verbose = false}) async {
+  Future<void> execute(ArgResults results, {bool verbose = false}) async {
     if (results['help'] == true) {
       _printHelp();
       return;
@@ -86,10 +92,13 @@ class ModelCommand extends BaseCommand {
     // ─────────────────────────────────────────────────────────────────────────
     // Generate Files
     // ─────────────────────────────────────────────────────────────────────────
+    final withState = results['with-state'] == true;
+
     final config = ModelGeneratorConfig(
       featureName: feature,
       modelName: name,
       fields: fields,
+      withState: withState,
     );
 
     try {
@@ -99,8 +108,10 @@ class ModelCommand extends BaseCommand {
       print('✅ Model and Entity generation complete!');
       print('');
       print('Generated files:');
-      print('   📄 lib/features/${_toSnakeCase(feature)}/domain/entities/${_toSnakeCase(name)}_entity.dart');
-      print('   📄 lib/features/${_toSnakeCase(feature)}/data/models/${_toSnakeCase(name)}_model.dart');
+      print(
+          '   📄 lib/features/${_toSnakeCase(feature)}/domain/entities/${_toSnakeCase(name)}_entity.dart');
+      print(
+          '   📄 lib/features/${_toSnakeCase(feature)}/data/models/${_toSnakeCase(name)}_model.dart');
     } catch (e, stackTrace) {
       stderr.writeln('❌ Error generating model: $e');
       if (verbose) {

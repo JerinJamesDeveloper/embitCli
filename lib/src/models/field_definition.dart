@@ -434,6 +434,7 @@ class ModelGeneratorConfig {
   final bool generateCopyWith;
   final bool generateEquatable;
   final bool generateJson;
+  final bool withState;
 
   const ModelGeneratorConfig({
     required this.featureName,
@@ -443,6 +444,7 @@ class ModelGeneratorConfig {
     this.generateCopyWith = true,
     this.generateEquatable = true,
     this.generateJson = true,
+    this.withState = false,
   });
 
   /// Feature name in PascalCase
