@@ -52,7 +52,7 @@
 ### Via Direct Git Repo
 
 ```bash
-dart pub global activate --source git https://github.com/JerinJamesMedas/embit-cli-v3.git
+dart pub global activate --source git https://github.com/JerinJamesDeveloper/embitCli.git
 
 ```
 
