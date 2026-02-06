@@ -57,6 +57,9 @@ class UseCaseConfig {
   /// Custom fields for the Params class
   final List<FieldDefinition> fields;
 
+  /// Custom entity name
+  final String? customEntityName;
+
   UseCaseConfig({
     required this.featureName,
     required this.useCaseName,
@@ -67,6 +70,7 @@ class UseCaseConfig {
     this.dryRun = false,
     this.withEvent = false,
     this.fields = const [],
+    this.customEntityName,
   });
 
   /// Whether custom fields are defined
@@ -99,7 +103,9 @@ class UseCaseConfig {
   String get paramsClassName => '${useCasePascalCase}Params';
 
   /// Entity name (e.g., 'ProductEntity')
-  String get entityName => '${featurePascalCase}Entity';
+  String get entityName => customEntityName != null
+      ? '${customEntityName}Entity'
+      : '${featurePascalCase}Entity';
 
   /// Repository name (e.g., 'ProductRepository')
   String get repositoryName => '${featurePascalCase}Repository';
@@ -122,13 +128,16 @@ class UseCaseConfig {
   String get usecasesPath => '$domainPath/usecases';
 
   /// UseCase file path
-  String get useCaseFilePath => '$usecasesPath/${useCaseSnakeCase}_usecase.dart';
+  String get useCaseFilePath =>
+      '$usecasesPath/${useCaseSnakeCase}_usecase.dart';
 
   /// Entity file path
-  String get entityFilePath => '$domainPath/entities/${featureSnakeCase}_entity.dart';
+  String get entityFilePath =>
+      '$domainPath/entities/${featureSnakeCase}_entity.dart';
 
   /// Repository file path
-  String get repositoryFilePath => '$domainPath/repositories/${featureSnakeCase}_repository.dart';
+  String get repositoryFilePath =>
+      '$domainPath/repositories/${featureSnakeCase}_repository.dart';
 
   /// BLoC directory path
   String get blocPath => '$featureBasePath/presentation/bloc';
@@ -191,7 +200,7 @@ class UseCaseConfig {
   String generateValidationCode() {
     if (!hasCustomFields) return '';
     final validations = <String>[];
-    
+
     for (final field in fields) {
       if (field.isRequired && field.type == 'String') {
         validations.add('''
@@ -204,7 +213,7 @@ class UseCaseConfig {
 ''');
       }
     }
-    
+
     return validations.join('\n');
   }
 

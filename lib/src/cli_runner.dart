@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:args/args.dart';
+import 'commands/generate_command.dart';
 import 'commands/init_command.dart';
 import 'commands/feature_command.dart';
 import 'commands/model_command.dart';
@@ -16,6 +17,7 @@ void run(List<String> arguments) {
     'feature': FeatureCommand(),
     'usecase': UseCaseCommand(),
     'model': ModelCommand(),
+    'generate': GenerateCommand(), 
   };
 
   for (final entry in commands.entries) {
@@ -32,7 +34,7 @@ void run(List<String> arguments) {
     }
 
     if (results['version'] == true) {
-      print('Embit CLI v0.8.1');
+      print('Embit CLI v0.9.0');
       print('Architecture enforcement for Flutter');
       return;
     }
@@ -59,7 +61,7 @@ void run(List<String> arguments) {
 void _printHelp(ArgParser parser) {
   print('''
 ╔════════════════════════════════════════╗
-║            Embit CLI v0.8.1            ║
+║            Embit CLI v0.9.0            ║
 ║    Architecture Enforcement Tool       ║
 ╚════════════════════════════════════════╝
 
@@ -69,6 +71,8 @@ Commands:
   init      Initialize project with full architecture
   feature   Create new feature with DI, Bloc, and routing
   usecase   Create new usecase for existing feature 
+  model     Create new model for existing feature/usecase
+  generate  Generate feature from JSON schema file  
 
 Options:
   -h, --help    Show this help
@@ -87,6 +91,15 @@ Examples:
 
   # With event (full wiring)
   embit usecase -f feed -n archive_post -t update --with-event
+
+  embit model -f orders -n order -t list
+
+  # with paramameter fields
+  embit model -f orders -n order -t create --string id --int quantity 
+
+  # Generate feature from schema file
+  embit generate -s templates/orders.json              
+  embit generate -s templates/home.json --dry-run      
 
 Run 'embit <command> --help' for command-specific help.
 ''');

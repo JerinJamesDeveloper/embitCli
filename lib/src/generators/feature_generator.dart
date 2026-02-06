@@ -1,5 +1,5 @@
 /// Feature Generator
-/// 
+///
 /// Generates all files for a new feature.
 library;
 
@@ -33,7 +33,7 @@ class FeatureGenerator {
     await _generateDomainLayer();
 
     _log('📝 Generating data layer...');
-    await _generateDataLayer(); 
+    await _generateDataLayer();
 
     _log('📝 Generating presentation layer...');
     await _generatePresentationLayer();
@@ -204,7 +204,8 @@ class FeatureGenerator {
   // ==================== DI CONTAINER ====================
 
   Future<void> _updateDIContainer() async {
-    final diFile = File('${config.projectPath}/lib/core/di/injection_container.dart');
+    final diFile =
+        File('${config.projectPath}/lib/core/di/injection_container.dart');
 
     if (!diFile.existsSync()) {
       print('  ⚠️ injection_container.dart not found. Skipping DI update.');
@@ -228,30 +229,35 @@ class FeatureGenerator {
     final matches = importRegex.allMatches(content).toList();
     if (matches.isNotEmpty) {
       final lastImportEnd = matches.last.end;
-      content = '${content.substring(0, lastImportEnd)}\n$imports${content.substring(lastImportEnd)}';
+      content =
+          '${content.substring(0, lastImportEnd)}\n$imports${content.substring(lastImportEnd)}';
     }
 
     // Add feature init function
     final registration = DITemplates.featureRegistration(config);
 
     // Find the END OF FEATURE marker
-    const endMarker = '// ==================== END OF FEATURE ====================';
+    const endMarker =
+        '// ==================== END OF FEATURE ====================';
     final index = content.lastIndexOf(endMarker);
 
     if (index != -1) {
       final insertPos = index + endMarker.length;
-      content = '${content.substring(0, insertPos)}\n\n$registration${content.substring(insertPos)}';
+      content =
+          '${content.substring(0, insertPos)}\n\n$registration${content.substring(insertPos)}';
     } else {
       // Fallback: add before the last closing brace
       final lastBrace = content.lastIndexOf('}');
       if (lastBrace != -1) {
-        content = '${content.substring(0, lastBrace)}\n$registration\n${content.substring(lastBrace)}';
+        content =
+            '${content.substring(0, lastBrace)}\n$registration\n${content.substring(lastBrace)}';
       }
     }
 
     // Add call to initDependencies
     final initCall = DITemplates.featureInitCall(config);
-    final initDepsRegex = RegExp(r'(Future<void> initDependencies\(\) async \{[^}]+)(})');
+    final initDepsRegex =
+        RegExp(r'(Future<void> initDependencies\(\) async \{[^}]+)(})');
     content = content.replaceFirstMapped(initDepsRegex, (match) {
       final existingContent = match.group(1)!;
       if (existingContent.contains('_init${config.pascalCase}Feature')) {
@@ -278,7 +284,8 @@ class FeatureGenerator {
   }
 
   Future<void> _updateRouteNames() async {
-    final routeNamesFile = File('${config.projectPath}/lib/navigation/route_names.dart');
+    final routeNamesFile =
+        File('${config.projectPath}/lib/navigation/route_names.dart');
     if (!routeNamesFile.existsSync()) {
       _log('  ⚠️ route_names.dart not found');
       return;
@@ -302,7 +309,8 @@ class FeatureGenerator {
           content.substring(routePathsIndex + routePathsMarker.length);
     } else {
       // Fallback: find end of RoutePaths class
-      final routePathsEnd = content.indexOf('}', content.indexOf('class RoutePaths'));
+      final routePathsEnd =
+          content.indexOf('}', content.indexOf('class RoutePaths'));
       if (routePathsEnd != -1) {
         content = content.substring(0, routePathsEnd) +
             RouteTemplates.routePaths(config) +
@@ -311,7 +319,8 @@ class FeatureGenerator {
     }
 
     // Add to RouteNames class
-    final routeNamesMarker = '// ============== ADD YOUR ROUTE NAMES ==============';
+    final routeNamesMarker =
+        '// ============== ADD YOUR ROUTE NAMES ==============';
     final routeNamesIndex = content.indexOf(routeNamesMarker);
     if (routeNamesIndex != -1) {
       content = content.substring(0, routeNamesIndex) +
@@ -320,7 +329,8 @@ class FeatureGenerator {
           content.substring(routeNamesIndex + routeNamesMarker.length);
     } else {
       // Fallback: find end of RouteNames class
-      final routeNamesEnd = content.indexOf('}', content.indexOf('class RouteNames'));
+      final routeNamesEnd =
+          content.indexOf('}', content.indexOf('class RouteNames'));
       if (routeNamesEnd != -1) {
         content = content.substring(0, routeNamesEnd) +
             RouteTemplates.routeNames(config) +
@@ -333,7 +343,8 @@ class FeatureGenerator {
   }
 
   Future<void> _updateAppRouter() async {
-    final appRouterFile = File('${config.projectPath}/lib/navigation/app_router.dart');
+    final appRouterFile =
+        File('${config.projectPath}/lib/navigation/app_router.dart');
     if (!appRouterFile.existsSync()) {
       _log('  ⚠️ app_router.dart not found');
       return;
@@ -353,7 +364,8 @@ class FeatureGenerator {
     final matches = importRegex.allMatches(content).toList();
     if (matches.isNotEmpty) {
       final lastImportEnd = matches.last.end;
-      content = '${content.substring(0, lastImportEnd)}\n$pageImport${content.substring(lastImportEnd)}';
+      content =
+          '${content.substring(0, lastImportEnd)}\n$pageImport${content.substring(lastImportEnd)}';
     }
 
     // Determine where to add the route
@@ -407,10 +419,11 @@ class FeatureGenerator {
 
     // Find the last ")," before the closing "]"
     final insertPoint = content.lastIndexOf('),', routesEnd);
-    
+
     if (insertPoint != -1 && insertPoint > routesStart) {
       final routeEntry = RouteTemplates.shellRouteEntry(config);
-      content = '${content.substring(0, insertPoint + 2)}\n$routeEntry${content.substring(insertPoint + 2)}';
+      content =
+          '${content.substring(0, insertPoint + 2)}\n$routeEntry${content.substring(insertPoint + 2)}';
     }
 
     return content;
@@ -423,7 +436,7 @@ class FeatureGenerator {
     final errorRouteIndex = content.indexOf('// ============== ERROR ROUTES');
     if (errorRouteIndex != -1) {
       var insertPoint = errorRouteIndex;
-      
+
       // Search backwards for "),"
       for (var i = errorRouteIndex - 1; i >= 0; i--) {
         if (i + 2 <= content.length && content.substring(i, i + 2) == '),') {
@@ -444,7 +457,8 @@ class FeatureGenerator {
   // ==================== API ENDPOINTS ====================
 
   Future<void> _updateApiEndpoints() async {
-    final apiFile = File('${config.projectPath}/lib/core/constants/api_endpoints.dart');
+    final apiFile =
+        File('${config.projectPath}/lib/core/constants/api_endpoints.dart');
     if (!apiFile.existsSync()) {
       _log('  ⚠️ api_endpoints.dart not found');
       return;
@@ -461,7 +475,7 @@ class FeatureGenerator {
     // Find the ADD YOUR ENDPOINTS marker
     final marker = '// ============== ADD YOUR ENDPOINTS ==============';
     final markerIndex = content.indexOf(marker);
-    
+
     if (markerIndex != -1) {
       content = content.substring(0, markerIndex) +
           RouteTemplates.apiEndpoint(config) +
@@ -484,7 +498,8 @@ class FeatureGenerator {
   // ==================== ROLE BASED NAVIGATOR ====================
 
   Future<void> _updateRoleBasedNavigator() async {
-    final navFile = File('${config.projectPath}/lib/navigation/role_based_navigator.dart');
+    final navFile =
+        File('${config.projectPath}/lib/navigation/role_based_navigator.dart');
     if (!navFile.existsSync()) {
       _log('  ⚠️ role_based_navigator.dart not found');
       return;
@@ -607,7 +622,7 @@ class FeatureGenerator {
 
   Future<void> _writeFile(String relativePath, String content) async {
     final file = File('${config.projectPath}/$relativePath');
-    
+
     if (file.existsSync() && !config.force) {
       _log('  ⚠️ Skipped (exists): $relativePath');
       return;
