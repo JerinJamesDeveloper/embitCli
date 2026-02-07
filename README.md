@@ -58,7 +58,7 @@ dart pub global activate --source git https://github.com/JerinJamesDeveloper/emb
 
 ### Via Dart Pub
 
-```bash
+```bashg
 dart pub global activate embit
 ```
 
