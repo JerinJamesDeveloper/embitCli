@@ -805,7 +805,7 @@ After running `embit init`, check `templates/` folder for:
 Project-level configuration file.
 
 ```yaml
-version: 0.9.0
+version: 0.9.4
 
 project:
   name: my_app
@@ -832,7 +832,16 @@ generate:
 
 ## Changelog
 
-### Version 0.9.2 (Latest)
+### Version 0.9.4 (Latest)
+
+#### Changed
+- 🔄 **BLoC/State Separation**: `embit model --with-state` now creates **only** states file, no longer creates BLoC or events
+- 🔄 **Clear Responsibilities**: Model command focuses on state structure, UseCase command handles BLoC and events with `--with-event`
+- ♻️ **Removed Conflicts**: Eliminates generation conflicts between model and usecase commands
+
+---
+
+### Version 0.9.2
 
 #### Added
 - ✨ **Local Data Source Generation**: `embit model` command now generates local data source files (e.g., `product_local_datasource.dart`) using `LocalStorage`.

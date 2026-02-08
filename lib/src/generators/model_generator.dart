@@ -320,12 +320,12 @@ class ModelGenerator {
   // BLOC STATE UPDATE
   // ══════════════════════════════════════════════════════════════════════════
 
-  /// Generate Model BLoC - Creates a separate BLoC for the model
+  /// Generate Model States - Creates ONLY the states file for the model
   ///
-  /// Instead of appending to the feature BLoC, this creates:
-  /// - presentation/bloc/models/{model}_bloc.dart
-  /// - presentation/bloc/models/{model}_event.dart
+  /// This creates:
   /// - presentation/bloc/models/{model}_state.dart
+  ///
+  /// Note: BLoC and Events are created by the usecase command with --with-event
   Future<void> _generateModelBloc(
     ModelGeneratorConfig config,
     String featurePath, {
@@ -337,115 +337,11 @@ class ModelGenerator {
 
     final modelSnake = _toSnakeCase(config.modelName);
 
-    // Create FeatureConfig for template
-    final featureConfig = FeatureConfig(
-      name: config.featureName,
-      projectName: config.projectName,
-      projectPath: config.projectPath,
-    );
-
-    // 1. Generate BLoC file
-    final blocContent = BlocTemplates.modelBloc(featureConfig, modelSnake);
-    final blocFile = File('${modelsDir.path}/${modelSnake}_bloc.dart');
-    await blocFile.writeAsString(blocContent);
-    print('✔ Model BLoC created: ${blocFile.path}');
-
-    // 2. Generate Events file
-    final eventsContent = BlocTemplates.modelEvents(modelSnake);
-    final eventsFile = File('${modelsDir.path}/${modelSnake}_event.dart');
-    await eventsFile.writeAsString(eventsContent);
-    print('✔ Model Events created: ${eventsFile.path}');
-
-    // 3. Generate States file
+    // Generate ONLY States file
     final statesContent = BlocTemplates.modelStates(modelSnake);
     final statesFile = File('${modelsDir.path}/${modelSnake}_state.dart');
     await statesFile.writeAsString(statesContent);
     print('✔ Model States created: ${statesFile.path}');
-
-    // 4. Update DI registration
-    await _registerModelBlocInDI(config, verbose: verbose);
-  }
-
-  /// Register Model BLoC in DI container
-  Future<void> _registerModelBlocInDI(
-    ModelGeneratorConfig config, {
-    bool verbose = false,
-  }) async {
-    final projectPath = config.projectPath;
-    final diFile = File('$projectPath/lib/core/di/injection_container.dart');
-
-    if (!diFile.existsSync()) {
-      if (verbose) {
-        print('⚠ Warning: injection_container.dart not found');
-      }
-      return;
-    }
-
-    var diContent = await diFile.readAsString();
-    final modelPascal = _toPascalCase(config.modelName);
-    final modelSnake = _toSnakeCase(config.modelName);
-    final featureSnake = _toSnakeCase(config.featureName);
-
-    // Check if already registered
-    if (diContent.contains('${modelPascal}Bloc')) {
-      if (verbose) print('ℹ ${modelPascal}Bloc already registered in DI');
-      return;
-    }
-
-    // Import statement
-    final blocImport =
-        "import 'package:${config.projectName}/features/$featureSnake/presentation/bloc/models/${modelSnake}_bloc.dart';";
-
-    // Add import after other bloc imports
-    if (!diContent.contains(blocImport)) {
-      final lines = diContent.split('\n');
-      final lastImportIndex =
-          lines.lastIndexWhere((line) => line.trim().startsWith('import'));
-
-      if (lastImportIndex != -1) {
-        lines.insert(lastImportIndex + 1, blocImport);
-        diContent = lines.join('\n');
-      }
-    }
-
-    // Registration code - registers with usecases
-    final registration = '''
-
-  // ${modelPascal} BLoC
-  sl.registerFactory(
-    () => ${modelPascal}Bloc(
-      get${modelPascal}UseCase: sl(),
-      getAll${modelPascal}sUseCase: sl(),
-      create${modelPascal}UseCase: sl(),
-      update${modelPascal}UseCase: sl(),
-      delete${modelPascal}UseCase: sl(),
-    ),
-  );
-''';
-
-    // Find where to insert (after other BLoC registrations)
-    final blocSectionRegex = RegExp(r'// .* BLoC\s*\n\s*sl\.registerFactory');
-    final match = blocSectionRegex.allMatches(diContent).lastOrNull;
-
-    if (match != null) {
-      // Insert after last BLoC registration
-      final insertIndex = diContent.indexOf(');', match.end) + 3;
-      diContent = diContent.substring(0, insertIndex) +
-          registration +
-          diContent.substring(insertIndex);
-    } else {
-      // Fallback: insert before the closing brace of init function
-      final initEndIndex = diContent.lastIndexOf('}');
-      if (initEndIndex != -1) {
-        diContent = diContent.substring(0, initEndIndex) +
-            registration +
-            '\n' +
-            diContent.substring(initEndIndex);
-      }
-    }
-
-    await diFile.writeAsString(diContent);
-    print('✔ DI updated: Registered ${modelPascal}Bloc');
   }
 
   String _toCamelCase(String input) {
