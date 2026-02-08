@@ -1,8 +1,8 @@
 # Embit CLI Documentation
 
-## Version 0.9.1
+## Version 0.9.2
 
-[![Version](https://img.shields.io/badge/version-0.9.1-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
+[![Version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -10,6 +10,7 @@
 ## Table of Contents
 
 - [Overview](#overview-section)
+  - [What's New in 0.9.2](#whats-new-in-092)
   - [What's New in 0.9.1](#whats-new-in-091)
   - [What's New in 0.9.0](#whats-new-in-090)
   - [What's New in 0.8.0](#whats-new-in-080)
@@ -68,6 +69,21 @@ dart pub global activate embit
 embit --version
 # Output: embit 0.9.0
 ```
+
+---
+
+## What's New in 0.9.2
+
+### 🚀 Local Data Source Generation
+
+Added automatic generation of local data sources when creating models. This provides a ready-to-use implementation for caching data using `LocalStorage`.
+
+```bash
+embit model -f products -n Product --string name
+```
+
+This will now also generate:
+- `lib/features/products/data/datasources/product_local_datasource.dart` containing `ProductLocalDataSource` and `ProductLocalDataSourceImpl`.
 
 ---
 
@@ -761,7 +777,12 @@ generate:
 
 ## Changelog
 
-### Version 0.9.1 (Latest)
+### Version 0.9.2 (Latest)
+
+#### Added
+- ✨ **Local Data Source Generation**: `embit model` command now generates local data source files (e.g., `product_local_datasource.dart`) using `LocalStorage`.
+
+### Version 0.9.1
 
 #### Added
 - ✨ **Model State Generation**: New `--with-state` flag for `embit model` command to auto-generate BLoC states.

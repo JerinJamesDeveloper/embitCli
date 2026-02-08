@@ -34,7 +34,7 @@ void run(List<String> arguments) {
     }
 
     if (results['version'] == true) {
-      print('Embit CLI v0.9.1');
+      print('Embit CLI v0.9.2');
       print('Architecture enforcement for Flutter');
       return;
     }
@@ -61,7 +61,7 @@ void run(List<String> arguments) {
 void _printHelp(ArgParser parser) {
   print('''
 ╔════════════════════════════════════════╗
-║            Embit CLI v0.9.1            ║
+║            Embit CLI v0.9.2            ║
 ║    Architecture Enforcement Tool       ║
 ╚════════════════════════════════════════╝
 
