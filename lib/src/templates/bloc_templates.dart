@@ -414,4 +414,450 @@ enum ${config.pascalCase}Operation {
   delete,
 }
 ''';
+
+  /// Model BLoC template - for model-specific BLoCs
+  /// Creates a minimal CRUD BLoC for a model within a feature
+  static String modelBloc(FeatureConfig featureConfig, String modelName) {
+    final modelPascal = _toPascalCase(modelName);
+    final modelCamel = _toCamelCase(modelName);
+    final modelSnake = modelName;
+
+    return '''
+/// $modelPascal BLoC
+///
+/// Business Logic Component for $modelName management.
+/// This is a model-specific BLoC within the ${featureConfig.name} feature.
+library;
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../../core/errors/failures.dart';
+import '../../../domain/entities/${modelSnake}_entity.dart';
+import '../../../domain/usecases/create_${modelSnake}_usecase.dart';
+import '../../../domain/usecases/delete_${modelSnake}_usecase.dart';
+import '../../../domain/usecases/get_${modelSnake}_usecase.dart';
+import '../../../domain/usecases/get_all_${modelSnake}s_usecase.dart';
+import '../../../domain/usecases/update_${modelSnake}_usecase.dart';
+import '${modelSnake}_event.dart';
+import '${modelSnake}_state.dart';
+
+/// $modelPascal BLoC
+class ${modelPascal}Bloc extends Bloc<${modelPascal}Event, ${modelPascal}State> {
+  final Get${modelPascal}UseCase _get${modelPascal}UseCase;
+  final GetAll${modelPascal}sUseCase _getAll${modelPascal}sUseCase;
+  final Create${modelPascal}UseCase _create${modelPascal}UseCase;
+  final Update${modelPascal}UseCase _update${modelPascal}UseCase;
+  final Delete${modelPascal}UseCase _delete${modelPascal}UseCase;
+
+  ${modelPascal}Bloc({
+    required Get${modelPascal}UseCase get${modelPascal}UseCase,
+    required GetAll${modelPascal}sUseCase getAll${modelPascal}sUseCase,
+    required Create${modelPascal}UseCase create${modelPascal}UseCase,
+    required Update${modelPascal}UseCase update${modelPascal}UseCase,
+    required Delete${modelPascal}UseCase delete${modelPascal}UseCase,
+  })  : _get${modelPascal}UseCase = get${modelPascal}UseCase,
+        _getAll${modelPascal}sUseCase = getAll${modelPascal}sUseCase,
+        _create${modelPascal}UseCase = create${modelPascal}UseCase,
+        _update${modelPascal}UseCase = update${modelPascal}UseCase,
+        _delete${modelPascal}UseCase = delete${modelPascal}UseCase,
+        super(const ${modelPascal}Initial()) {
+    on<${modelPascal}LoadRequested>(_onLoadRequested);
+    on<${modelPascal}ListLoadRequested>(_onListLoadRequested);
+    on<${modelPascal}CreateRequested>(_onCreate);
+    on<${modelPascal}UpdateRequested>(_onUpdate);
+    on<${modelPascal}DeleteRequested>(_onDelete);
+    on<${modelPascal}RefreshRequested>(_onRefresh);
+    on<${modelPascal}ErrorCleared>(_onErrorCleared);
+  }
+
+  Future<void> _onLoadRequested(
+    ${modelPascal}LoadRequested event,
+    Emitter<${modelPascal}State> emit,
+  ) async {
+    emit(const ${modelPascal}Loading(message: 'Loading...'));
+
+    final result = await _get${modelPascal}UseCase(
+      Get${modelPascal}Params(id: event.id),
+    );
+
+    result.fold(
+      (failure) => emit(${modelPascal}Error(message: failure.message)),
+      ($modelCamel) => emit(${modelPascal}Loaded($modelCamel: $modelCamel)),
+    );
+  }
+
+  Future<void> _onListLoadRequested(
+    ${modelPascal}ListLoadRequested event,
+    Emitter<${modelPascal}State> emit,
+  ) async {
+    emit(const ${modelPascal}Loading(message: 'Loading list...'));
+
+    final result = await _getAll${modelPascal}sUseCase();
+
+    result.fold(
+      (failure) => emit(${modelPascal}Error(message: failure.message)),
+      (${modelCamel}s) => emit(${modelPascal}ListLoaded(${modelCamel}s: ${modelCamel}s)),
+    );
+  }
+
+  Future<void> _onCreate(
+    ${modelPascal}CreateRequested event,
+    Emitter<${modelPascal}State> emit,
+  ) async {
+    final currentItems = _getCurrentItems();
+    emit(${modelPascal}Operating(
+      ${modelCamel}s: currentItems,
+      operation: ${modelPascal}Operation.create,
+    ));
+
+    final result = await _create${modelPascal}UseCase(
+      Create${modelPascal}Params(
+        name: event.name,
+        description: event.description,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(_mapFailureToState(failure, currentItems)),
+      ($modelCamel) {
+        final updatedItems = [...currentItems, $modelCamel];
+        emit(${modelPascal}OperationSuccess(
+          ${modelCamel}s: updatedItems,
+          message: '$modelPascal created successfully',
+        ));
+      },
+    );
+  }
+
+  Future<void> _onUpdate(
+    ${modelPascal}UpdateRequested event,
+    Emitter<${modelPascal}State> emit,
+  ) async {
+    final currentItems = _getCurrentItems();
+    emit(${modelPascal}Operating(
+      ${modelCamel}s: currentItems,
+      operation: ${modelPascal}Operation.update,
+    ));
+
+    final result = await _update${modelPascal}UseCase(
+      Update${modelPascal}Params(
+        id: event.id,
+        name: event.name,
+        description: event.description,
+        isActive: event.isActive,
+      ),
+    );
+
+    result.fold(
+      (failure) => emit(_mapFailureToState(failure, currentItems)),
+      ($modelCamel) {
+        final updatedItems = currentItems.map((item) {
+          return item.id == $modelCamel.id ? $modelCamel : item;
+        }).toList();
+        emit(${modelPascal}OperationSuccess(
+          ${modelCamel}s: updatedItems,
+          message: '$modelPascal updated successfully',
+        ));
+      },
+    );
+  }
+
+  Future<void> _onDelete(
+    ${modelPascal}DeleteRequested event,
+    Emitter<${modelPascal}State> emit,
+  ) async {
+    final currentItems = _getCurrentItems();
+    emit(${modelPascal}Operating(
+      ${modelCamel}s: currentItems,
+      operation: ${modelPascal}Operation.delete,
+    ));
+
+    final result = await _delete${modelPascal}UseCase(
+      Delete${modelPascal}Params(id: event.id),
+    );
+
+    result.fold(
+      (failure) => emit(_mapFailureToState(failure, currentItems)),
+      (_) {
+        final updatedItems = currentItems.where((item) => item.id != event.id).toList();
+        emit(${modelPascal}OperationSuccess(
+          ${modelCamel}s: updatedItems,
+          message: '$modelPascal deleted successfully',
+        ));
+      },
+    );
+  }
+
+  Future<void> _onRefresh(
+    ${modelPascal}RefreshRequested event,
+    Emitter<${modelPascal}State> emit,
+  ) async {
+    final result = await _getAll${modelPascal}sUseCase();
+
+    result.fold(
+      (failure) {
+        // Keep current state on refresh failure
+      },
+      (${modelCamel}s) => emit(${modelPascal}ListLoaded(${modelCamel}s: ${modelCamel}s)),
+    );
+  }
+
+  void _onErrorCleared(
+    ${modelPascal}ErrorCleared event,
+    Emitter<${modelPascal}State> emit,
+  ) {
+    final currentItems = _getCurrentItems();
+    if (currentItems.isNotEmpty) {
+      emit(${modelPascal}ListLoaded(${modelCamel}s: currentItems));
+    } else {
+      emit(const ${modelPascal}Initial());
+    }
+  }
+
+  List<${modelPascal}Entity> _getCurrentItems() {
+    final currentState = state;
+    if (currentState is ${modelPascal}ListLoaded) return currentState.${modelCamel}s;
+    if (currentState is ${modelPascal}Operating) return currentState.${modelCamel}s;
+    if (currentState is ${modelPascal}OperationSuccess) return currentState.${modelCamel}s;
+    if (currentState is ${modelPascal}Error) return currentState.${modelCamel}s ?? [];
+    return [];
+  }
+
+  ${modelPascal}Error _mapFailureToState(Failure failure, List<${modelPascal}Entity> items) {
+    if (failure is ValidationFailure) {
+      return ${modelPascal}Error(
+        message: failure.message,
+        fieldErrors: failure.fieldErrors,
+        ${modelCamel}s: items,
+      );
+    }
+    return ${modelPascal}Error(
+      message: failure.message,
+      ${modelCamel}s: items,
+    );
+  }
+}
+''';
+  }
+
+  /// Model Events template
+  static String modelEvents(String modelName) {
+    final modelPascal = _toPascalCase(modelName);
+
+    return '''
+/// $modelPascal BLoC Events
+///
+/// Events that trigger state changes in the ${modelPascal}Bloc.
+library;
+
+import 'package:equatable/equatable.dart';
+
+/// Base class for all $modelName events
+sealed class ${modelPascal}Event extends Equatable {
+  const ${modelPascal}Event();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// Event to load a single $modelName
+class ${modelPascal}LoadRequested extends ${modelPascal}Event {
+  final String id;
+
+  const ${modelPascal}LoadRequested({required this.id});
+
+  @override
+  List<Object?> get props => [id];
+}
+
+/// Event to load all ${modelName}s
+class ${modelPascal}ListLoadRequested extends ${modelPascal}Event {
+  const ${modelPascal}ListLoadRequested();
+}
+
+/// Event to create a new $modelName
+class ${modelPascal}CreateRequested extends ${modelPascal}Event {
+  final String name;
+  final String? description;
+
+  const ${modelPascal}CreateRequested({
+    required this.name,
+    this.description,
+  });
+
+  @override
+  List<Object?> get props => [name, description];
+}
+
+/// Event to update an existing $modelName
+class ${modelPascal}UpdateRequested extends ${modelPascal}Event {
+  final String id;
+  final String? name;
+  final String? description;
+  final bool? isActive;
+
+  const ${modelPascal}UpdateRequested({
+    required this.id,
+    this.name,
+    this.description,
+    this.isActive,
+  });
+
+  @override
+  List<Object?> get props => [id, name, description, isActive];
+}
+
+/// Event to delete a $modelName
+class ${modelPascal}DeleteRequested extends ${modelPascal}Event {
+  final String id;
+
+  const ${modelPascal}DeleteRequested({required this.id});
+
+  @override
+  List<Object?> get props => [id];
+}
+
+/// Event to refresh ${modelName}s
+class ${modelPascal}RefreshRequested extends ${modelPascal}Event {
+  const ${modelPascal}RefreshRequested();
+}
+
+/// Event to clear error state
+class ${modelPascal}ErrorCleared extends ${modelPascal}Event {
+  const ${modelPascal}ErrorCleared();
+}
+''';
+  }
+
+  /// Model States template
+  static String modelStates(String modelName) {
+    final modelPascal = _toPascalCase(modelName);
+    final modelCamel = _toCamelCase(modelName);
+    final modelSnake = modelName;
+
+    return '''
+/// $modelPascal BLoC States
+///
+/// States representing the current $modelName status.
+library;
+
+import 'package:equatable/equatable.dart';
+
+import '../../../domain/entities/${modelSnake}_entity.dart';
+
+/// Base class for all $modelName states
+sealed class ${modelPascal}State extends Equatable {
+  const ${modelPascal}State();
+
+  @override
+  List<Object?> get props => [];
+}
+
+/// Initial state
+class ${modelPascal}Initial extends ${modelPascal}State {
+  const ${modelPascal}Initial();
+}
+
+/// Loading state
+class ${modelPascal}Loading extends ${modelPascal}State {
+  final String? message;
+
+  const ${modelPascal}Loading({this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+/// Single $modelName loaded successfully
+class ${modelPascal}Loaded extends ${modelPascal}State {
+  final ${modelPascal}Entity $modelCamel;
+
+  const ${modelPascal}Loaded({required this.$modelCamel});
+
+  @override
+  List<Object?> get props => [$modelCamel];
+}
+
+/// List of ${modelName}s loaded successfully
+class ${modelPascal}ListLoaded extends ${modelPascal}State {
+  final List<${modelPascal}Entity> ${modelCamel}s;
+
+  const ${modelPascal}ListLoaded({required this.${modelCamel}s});
+
+  @override
+  List<Object?> get props => [${modelCamel}s];
+}
+
+/// Operation in progress
+class ${modelPascal}Operating extends ${modelPascal}State {
+  final List<${modelPascal}Entity> ${modelCamel}s;
+  final ${modelPascal}Operation operation;
+
+  const ${modelPascal}Operating({
+    required this.${modelCamel}s,
+    required this.operation,
+  });
+
+  @override
+  List<Object?> get props => [${modelCamel}s, operation];
+}
+
+/// Operation completed successfully
+class ${modelPascal}OperationSuccess extends ${modelPascal}State {
+  final List<${modelPascal}Entity> ${modelCamel}s;
+  final String message;
+
+  const ${modelPascal}OperationSuccess({
+    required this.${modelCamel}s,
+    this.message = 'Operation completed successfully',
+  });
+
+  @override
+  List<Object?> get props => [${modelCamel}s, message];
+}
+
+/// Error state
+class ${modelPascal}Error extends ${modelPascal}State {
+  final String message;
+  final Map<String, List<String>>? fieldErrors;
+  final List<${modelPascal}Entity>? ${modelCamel}s;
+
+  const ${modelPascal}Error({
+    required this.message,
+    this.fieldErrors,
+    this.${modelCamel}s,
+  });
+
+  String? getFieldError(String field) {
+    return fieldErrors?[field]?.first;
+  }
+
+  bool get hasFieldErrors => fieldErrors != null && fieldErrors!.isNotEmpty;
+
+  @override
+  List<Object?> get props => [message, fieldErrors, ${modelCamel}s];
+}
+
+/// Operation types
+enum ${modelPascal}Operation {
+  create,
+  update,
+  delete,
+}
+''';
+  }
+
+  /// Helper methods for case conversion
+  static String _toPascalCase(String input) {
+    return input.split('_').map((word) {
+      if (word.isEmpty) return '';
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join();
+  }
+
+  static String _toCamelCase(String input) {
+    final pascal = _toPascalCase(input);
+    if (pascal.isEmpty) return '';
+    return '${pascal[0].toLowerCase()}${pascal.substring(1)}';
+  }
 }

@@ -1,8 +1,8 @@
 # Embit CLI Documentation
 
-## Version 0.9.2
+## Version 0.9.3
 
-[![Version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
+[![Version](https://img.shields.io/badge/version-0.9.3-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -10,6 +10,7 @@
 ## Table of Contents
 
 - [Overview](#overview-section)
+  - [What's New in 0.9.3](#whats-new-in-093)
   - [What's New in 0.9.2](#whats-new-in-092)
   - [What's New in 0.9.1](#whats-new-in-091)
   - [What's New in 0.9.0](#whats-new-in-090)
@@ -69,6 +70,60 @@ dart pub global activate embit
 embit --version
 # Output: embit 0.9.0
 ```
+
+---
+
+## What's New in 0.9.3
+
+### 🎯 Model-Specific BLoC Generation
+
+Completely refactored how BLoCs are generated for models! Instead of appending states to the main feature BLoC (which caused chaos with mixed concerns), `embit model --with-state` now creates **dedicated BLoCs** for each model.
+
+#### New Structure
+
+```bash
+embit model -f check -n Newcheck --string name --with-state
+```
+
+**Creates:**
+```
+lib/features/check/
+└── presentation/
+    └── bloc/
+        ├── check_bloc.dart (Main feature BLoC)
+        ├── check_event.dart
+        ├── check_state.dart
+        └── models/  ← NEW!
+            ├── newcheck_bloc.dart
+            ├── newcheck_event.dart
+            └── newcheck_state.dart
+```
+
+#### Interactive BLoC Selection for UseCases
+
+When using `embit usecase --with-event`, the CLI now detects all available BLoCs and prompts you to select which one should receive the event handler:
+
+```bash
+embit usecase -f check -n archive --with-event
+
+📋 Multiple BLoCs detected. Select target:
+  1. CheckBloc (Main feature BLoC)
+  2. NewcheckBloc (Model BLoC)
+  3. Skip event generation (manual)
+
+Choice [1-3]: 2
+```
+
+**Non-Interactive Mode:**
+```bash
+embit usecase -f check -n archive --with-event --target-bloc=newcheck
+```
+
+#### Benefits
+- ✅ **Separation of Concerns** - Each model has its own BLoC
+- ✅ **Cleaner Code** - No more repetitive `_getCurrentItems()` methods with different prefixes
+- ✅ **Auto DI Registration** - Model BLoCs automatically registered in `injection_container.dart`
+- ✅ **Better Maintainability** - Easy to locate and modify model-specific logic
 
 ---
 
@@ -781,6 +836,20 @@ generate:
 
 #### Added
 - ✨ **Local Data Source Generation**: `embit model` command now generates local data source files (e.g., `product_local_datasource.dart`) using `LocalStorage`.
+
+---
+
+### Version 0.9.3
+
+#### Added
+- ✨ **Model-Specific BLoC Generation**: `embit model --with-state` now creates dedicated BLoCs in `presentation/bloc/models/` instead of appending to feature BLoC
+- ✨ **Interactive BLoC Selection**: `embit usecase --with-event` prompts to select target BLoC when multiple exist
+- ✨ **`--target-bloc` Flag**: Non-interactive BLoC targeting for CI/CD workflows
+- ✨ **Auto DI Registration**: Model BLoCs automatically registered in `injection_container.dart`
+
+#### Changed
+- 🔄 **BLoC Architecture**: Each model now has its own isolated BLoC with proper separation of concerns
+- 🔄 **Event Naming**: Events now use correct BLoC prefix (e.g., `NewcheckArchiveRequested` instead of `CheckArchiveRequested`)
 
 ### Version 0.9.1
 

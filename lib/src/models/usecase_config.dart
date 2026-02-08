@@ -3,6 +3,7 @@
 /// Configuration model for generating usecases.
 library;
 
+import 'bloc_info.dart';
 import 'field_definition.dart';
 import '../utils/string_utils.dart';
 
@@ -60,6 +61,9 @@ class UseCaseConfig {
   /// Custom entity name
   final String? customEntityName;
 
+  /// Target BLoC for event handler (when --with-event is used)
+  final BlocInfo? targetBloc;
+
   UseCaseConfig({
     required this.featureName,
     required this.useCaseName,
@@ -71,6 +75,7 @@ class UseCaseConfig {
     this.withEvent = false,
     this.fields = const [],
     this.customEntityName,
+    this.targetBloc,
   });
 
   /// Whether custom fields are defined
@@ -110,11 +115,20 @@ class UseCaseConfig {
   /// Repository name (e.g., 'ProductRepository')
   String get repositoryName => '${featurePascalCase}Repository';
 
-  /// BLoC name (e.g., 'ProductBloc')
-  String get blocName => '${featurePascalCase}Bloc';
+  /// BLoC name (e.g., 'ProductBloc' or 'NewcheckBloc')
+  String get blocName => targetBloc?.name ?? '${featurePascalCase}Bloc';
 
   /// Event name (e.g., 'ProductArchiveRequested')
-  String get eventName => '$featurePascalCase${useCasePascalCase}Requested';
+  String get eventName => '${_getBlocPrefix()}${useCasePascalCase}Requested';
+
+  /// Get BLoC prefix for event naming
+  String _getBlocPrefix() {
+    if (targetBloc != null) {
+      // Remove 'Bloc' suffix from BLoC name to get prefix
+      return targetBloc!.name.replaceAll('Bloc', '');
+    }
+    return featurePascalCase;
+  }
 
   // ==================== PATHS ====================
 
@@ -140,13 +154,28 @@ class UseCaseConfig {
       '$domainPath/repositories/${featureSnakeCase}_repository.dart';
 
   /// BLoC directory path
-  String get blocPath => '$featureBasePath/presentation/bloc';
+  String get blocPath {
+    if (targetBloc != null && targetBloc!.isModelBloc) {
+      return '$featureBasePath/presentation/bloc/models';
+    }
+    return '$featureBasePath/presentation/bloc';
+  }
 
   /// BLoC file path
-  String get blocFilePath => '$blocPath/${featureSnakeCase}_bloc.dart';
+  String get blocFilePath {
+    if (targetBloc != null && targetBloc!.isModelBloc) {
+      return '$blocPath/${targetBloc!.snakeName}_bloc.dart';
+    }
+    return '$blocPath/${featureSnakeCase}_bloc.dart';
+  }
 
   /// Event file path
-  String get eventFilePath => '$blocPath/${featureSnakeCase}_event.dart';
+  String get eventFilePath {
+    if (targetBloc != null && targetBloc!.isModelBloc) {
+      return '$blocPath/${targetBloc!.snakeName}_event.dart';
+    }
+    return '$blocPath/${featureSnakeCase}_event.dart';
+  }
 
   /// Method name for repository (e.g., 'archiveProduct')
   String get repositoryMethodName => useCaseCamelCase;

@@ -2,6 +2,7 @@ import 'dart:io';
 import '../models/feature_config.dart';
 import '../models/field_definition.dart';
 import '../templates/datasource_templates.dart';
+import '../templates/bloc_templates.dart';
 
 class ModelGenerator {
   Future<void> generate(ModelGeneratorConfig config,
@@ -19,7 +20,7 @@ class ModelGenerator {
     await _createLocalDataSource(config, featurePath, verbose: verbose);
 
     if (config.withState) {
-      await _updateBlocState(
+      await _generateModelBloc(
           config, 'lib/features/${_toSnakeCase(config.featureName)}',
           verbose: verbose);
     }
@@ -319,89 +320,132 @@ class ModelGenerator {
   // BLOC STATE UPDATE
   // ══════════════════════════════════════════════════════════════════════════
 
-  Future<void> _updateBlocState(
+  /// Generate Model BLoC - Creates a separate BLoC for the model
+  ///
+  /// Instead of appending to the feature BLoC, this creates:
+  /// - presentation/bloc/models/{model}_bloc.dart
+  /// - presentation/bloc/models/{model}_event.dart
+  /// - presentation/bloc/models/{model}_state.dart
+  Future<void> _generateModelBloc(
     ModelGeneratorConfig config,
     String featurePath, {
     bool verbose = false,
   }) async {
-    final blocStart = '$featurePath/presentation/bloc';
-    final stateFile = File('$blocStart/${config.featureSnakeCase}_state.dart');
-    final blocFile = File('$blocStart/${config.featureSnakeCase}_bloc.dart');
+    // Create models directory
+    final modelsDir = Directory('$featurePath/presentation/bloc/models');
+    await modelsDir.create(recursive: true);
 
-    if (!stateFile.existsSync()) {
-      if (verbose)
-        print('⚠ Warning: Bloc state file not found at ${stateFile.path}');
+    final modelSnake = _toSnakeCase(config.modelName);
+
+    // Create FeatureConfig for template
+    final featureConfig = FeatureConfig(
+      name: config.featureName,
+      projectName: config.projectName,
+      projectPath: config.projectPath,
+    );
+
+    // 1. Generate BLoC file
+    final blocContent = BlocTemplates.modelBloc(featureConfig, modelSnake);
+    final blocFile = File('${modelsDir.path}/${modelSnake}_bloc.dart');
+    await blocFile.writeAsString(blocContent);
+    print('✔ Model BLoC created: ${blocFile.path}');
+
+    // 2. Generate Events file
+    final eventsContent = BlocTemplates.modelEvents(modelSnake);
+    final eventsFile = File('${modelsDir.path}/${modelSnake}_event.dart');
+    await eventsFile.writeAsString(eventsContent);
+    print('✔ Model Events created: ${eventsFile.path}');
+
+    // 3. Generate States file
+    final statesContent = BlocTemplates.modelStates(modelSnake);
+    final statesFile = File('${modelsDir.path}/${modelSnake}_state.dart');
+    await statesFile.writeAsString(statesContent);
+    print('✔ Model States created: ${statesFile.path}');
+
+    // 4. Update DI registration
+    await _registerModelBlocInDI(config, verbose: verbose);
+  }
+
+  /// Register Model BLoC in DI container
+  Future<void> _registerModelBlocInDI(
+    ModelGeneratorConfig config, {
+    bool verbose = false,
+  }) async {
+    final projectPath = config.projectPath;
+    final diFile = File('$projectPath/lib/core/di/injection_container.dart');
+
+    if (!diFile.existsSync()) {
+      if (verbose) {
+        print('⚠ Warning: injection_container.dart not found');
+      }
       return;
     }
 
-    // 1. Update State File
-    var stateContent = await stateFile.readAsString();
-    final newStates = _generateNewStates(config);
+    var diContent = await diFile.readAsString();
+    final modelPascal = _toPascalCase(config.modelName);
+    final modelSnake = _toSnakeCase(config.modelName);
+    final featureSnake = _toSnakeCase(config.featureName);
 
-    // Check if states already exist (simple check)
-    if (stateContent.contains('class ${config.modelPascalCase}Loaded')) {
-      if (verbose) print('ℹ States for ${config.modelName} already exist.');
-    } else {
-      stateContent += '\n$newStates';
-      await stateFile.writeAsString(stateContent);
-      print('✔ Updated states in: ${stateFile.path}');
+    // Check if already registered
+    if (diContent.contains('${modelPascal}Bloc')) {
+      if (verbose) print('ℹ ${modelPascal}Bloc already registered in DI');
+      return;
     }
 
-    // 2. Update Bloc File (Imports)
-    if (blocFile.existsSync()) {
-      var blocContent = await blocFile.readAsString();
-      final entityImport =
-          "import '../../domain/entities/${config.modelSnakeCase}_entity.dart';";
+    // Import statement
+    final blocImport =
+        "import 'package:${config.projectName}/features/$featureSnake/presentation/bloc/models/${modelSnake}_bloc.dart';";
 
-      if (!blocContent.contains(entityImport)) {
-        // Find last import
-        final lines = blocContent.split('\n');
-        final lastImportIndex =
-            lines.lastIndexWhere((line) => line.startsWith('import '));
+    // Add import after other bloc imports
+    if (!diContent.contains(blocImport)) {
+      final lines = diContent.split('\n');
+      final lastImportIndex =
+          lines.lastIndexWhere((line) => line.trim().startsWith('import'));
 
-        if (lastImportIndex != -1) {
-          lines.insert(lastImportIndex + 1, entityImport);
-          await blocFile.writeAsString(lines.join('\n'));
-          print('✔ Added import to: ${blocFile.path}');
-        }
+      if (lastImportIndex != -1) {
+        lines.insert(lastImportIndex + 1, blocImport);
+        diContent = lines.join('\n');
       }
     }
-  }
 
-  String _generateNewStates(ModelGeneratorConfig config) {
-    final model = config.modelPascalCase;
-    final entity = '${model}Entity';
-    final feature = config.featurePascalCase;
-    final modelCamel = _toCamelCase(config.modelName);
+    // Registration code - registers with usecases
+    final registration = '''
 
-    return '''
-// -------------------- $model States --------------------
-
-class ${model}Initial extends ${feature}State {}
-
-class ${model}Loading extends ${feature}State {}
-
-class ${model}Loaded extends ${feature}State {
-  final $entity $modelCamel;
-  const ${model}Loaded(this.$modelCamel);
-}
-
-class ${model}ListLoaded extends ${feature}State {
-  final List<$entity> ${modelCamel}s;
-  const ${model}ListLoaded(this.${modelCamel}s);
-}
-
-class ${model}OperationSuccess extends ${feature}State {
-  final String message;
-  final $entity? $modelCamel;
-  const ${model}OperationSuccess(this.message, {this.$modelCamel});
-}
-
-class ${model}Error extends ${feature}State {
-  final String message;
-  const ${model}Error(this.message);
-}
+  // ${modelPascal} BLoC
+  sl.registerFactory(
+    () => ${modelPascal}Bloc(
+      get${modelPascal}UseCase: sl(),
+      getAll${modelPascal}sUseCase: sl(),
+      create${modelPascal}UseCase: sl(),
+      update${modelPascal}UseCase: sl(),
+      delete${modelPascal}UseCase: sl(),
+    ),
+  );
 ''';
+
+    // Find where to insert (after other BLoC registrations)
+    final blocSectionRegex = RegExp(r'// .* BLoC\s*\n\s*sl\.registerFactory');
+    final match = blocSectionRegex.allMatches(diContent).lastOrNull;
+
+    if (match != null) {
+      // Insert after last BLoC registration
+      final insertIndex = diContent.indexOf(');', match.end) + 3;
+      diContent = diContent.substring(0, insertIndex) +
+          registration +
+          diContent.substring(insertIndex);
+    } else {
+      // Fallback: insert before the closing brace of init function
+      final initEndIndex = diContent.lastIndexOf('}');
+      if (initEndIndex != -1) {
+        diContent = diContent.substring(0, initEndIndex) +
+            registration +
+            '\n' +
+            diContent.substring(initEndIndex);
+      }
+    }
+
+    await diFile.writeAsString(diContent);
+    print('✔ DI updated: Registered ${modelPascal}Bloc');
   }
 
   String _toCamelCase(String input) {

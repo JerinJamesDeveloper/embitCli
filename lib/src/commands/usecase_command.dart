@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 
 import 'base_command.dart';
+import '../models/bloc_info.dart';
 import '../models/field_definition.dart';
 import '../models/usecase_config.dart';
 import '../validators/project_validator.dart';
@@ -47,6 +48,11 @@ class UseCaseCommand extends BaseCommand {
       'with-event',
       help: 'Generate BLoC event automatically',
       negatable: false,
+    )
+    ..addOption(
+      'target-bloc',
+      help:
+          'Target BLoC for event handler (main, or model name). Auto-prompts if multiple BLoCs exist.',
     )
     ..addFlag(
       'force',
@@ -95,7 +101,7 @@ class UseCaseCommand extends BaseCommand {
       UseCaseValidator.validateOrThrow(useCaseName);
     } on ArgumentError catch (e) {
       stderr.writeln('❌ $e');
-      
+
       final suggestion = UseCaseValidator.suggestValidName(useCaseName);
       if (suggestion != null) {
         stderr.writeln('\n💡 Did you mean: $suggestion');
@@ -105,7 +111,7 @@ class UseCaseCommand extends BaseCommand {
 
     // ========== Validate Project ==========
     print('🔍 Validating project...');
-    
+
     if (!ProjectValidator.isFlutterProject(projectPath)) {
       stderr.writeln('');
       stderr.writeln('❌ Error: Not a Flutter project');
@@ -115,13 +121,14 @@ class UseCaseCommand extends BaseCommand {
     if (!ProjectValidator.isStarterKitInitialized(projectPath)) {
       stderr.writeln('');
       stderr.writeln('❌ Error: Starter kit not initialized');
-      stderr.writeln('   Run "embit init" first to set up the project structure.');
+      stderr.writeln(
+          '   Run "embit init" first to set up the project structure.');
       exit(1);
     }
 
     // ========== Validate Feature ==========
     print('🔍 Validating feature...');
-    
+
     final featureValidation = UseCaseValidator.validateFeatureForUseCase(
       projectPath,
       featureName,
@@ -130,7 +137,8 @@ class UseCaseCommand extends BaseCommand {
     if (featureValidation != null) {
       stderr.writeln('');
       stderr.writeln('❌ Error: $featureValidation');
-      stderr.writeln('   Create the feature first: embit feature -n $featureName');
+      stderr.writeln(
+          '   Create the feature first: embit feature -n $featureName');
       exit(1);
     }
 
@@ -139,7 +147,8 @@ class UseCaseCommand extends BaseCommand {
     print('   ✓ Entity "$entityName" found');
 
     // ========== Check if UseCase Exists ==========
-    if (UseCaseValidator.useCaseExists(projectPath, featureName, useCaseName) && !force) {
+    if (UseCaseValidator.useCaseExists(projectPath, featureName, useCaseName) &&
+        !force) {
       stderr.writeln('');
       stderr.writeln('❌ Error: UseCase "$useCaseName" already exists');
       stderr.writeln('   Use --force to overwrite existing usecase');
@@ -168,7 +177,14 @@ class UseCaseCommand extends BaseCommand {
         defaultIndex: 5,
       );
 
-      typeString = ['get', 'get-list', 'create', 'update', 'delete', 'custom'][typeIndex];
+      typeString = [
+        'get',
+        'get-list',
+        'create',
+        'update',
+        'delete',
+        'custom'
+      ][typeIndex];
 
       // Ask about event generation
       withEvent = CLIPrompts.confirm(
@@ -202,6 +218,18 @@ class UseCaseCommand extends BaseCommand {
     // ========== Get Project Name ==========
     final projectName = ProjectValidator.getProjectName(projectPath);
 
+    // ========== Select Target BLoC (if withEvent) ==========
+    BlocInfo? targetBloc;
+    if (withEvent) {
+      targetBloc = await _selectTargetBloc(
+        projectPath,
+        featureName,
+        results['target-bloc'] as String?,
+        interactive: interactive,
+        verbose: verbose,
+      );
+    }
+
     // ========== Create Config ==========
     final config = UseCaseConfig(
       featureName: featureName,
@@ -213,6 +241,7 @@ class UseCaseCommand extends BaseCommand {
       dryRun: dryRun,
       withEvent: withEvent,
       fields: fields,
+      targetBloc: targetBloc, // Pass selected BLoC
     );
 
     // ========== Dry Run ==========
@@ -267,22 +296,26 @@ class UseCaseCommand extends BaseCommand {
     print('   1. Add repository method in:');
     print('      ${config.repositoryFilePath}');
     print('');
-    print('      Future<Either<Failure, ${config.returnType}>> ${config.repositoryMethodName}(...);');
+    print(
+        '      Future<Either<Failure, ${config.returnType}>> ${config.repositoryMethodName}(...);');
     print('');
     print('   2. Implement in repository:');
-    print('      lib/features/$featureName/data/repositories/${featureName}_repository_impl.dart');
+    print(
+        '      lib/features/$featureName/data/repositories/${featureName}_repository_impl.dart');
     print('');
     if (withEvent) {
       print('   3. Add event handler in BLoC:');
       print('      on<${config.eventName}>(_on${config.useCasePascalCase});');
       print('');
       print('   4. Use in UI:');
-      print('      context.read<${config.blocName}>().add(${config.eventName}(...));');
+      print(
+          '      context.read<${config.blocName}>().add(${config.eventName}(...));');
     } else {
       print('   3. Create BLoC event and handler if needed');
       print('');
       print('   4. Use the usecase:');
-      print('      await _${config.useCaseCamelCase}UseCase(${config.paramsClassName}(...));');
+      print(
+          '      await _${config.useCaseCamelCase}UseCase(${config.paramsClassName}(...));');
     }
     print('');
     print('═══════════════════════════════════════════════════════════════');
@@ -291,18 +324,18 @@ class UseCaseCommand extends BaseCommand {
   void _printPreview(UseCaseConfig config) {
     print('   Files to be created:');
     print('   📄 ${config.useCaseFilePath}');
-    
+
     if (config.withEvent) {
       print('');
       print('   Files to be updated:');
       print('   📝 ${config.eventFilePath} (add event)');
     }
-    
+
     print('');
     print('   Files to be updated:');
     print('   📝 lib/core/di/injection_container.dart');
     print('   📝 ${config.blocFilePath}');
-    
+
     // Show custom fields if any
     if (config.hasCustomFields) {
       print('');
@@ -313,10 +346,11 @@ class UseCaseCommand extends BaseCommand {
         print('   • ${field.name}: ${field.type}$nullable$required');
       }
     }
-    
+
     print('');
     print('   Repository method to implement:');
-    print('   ⚠️  Future<Either<Failure, ${config.returnType}>> ${config.repositoryMethodName}(...)');
+    print(
+        '   ⚠️  Future<Either<Failure, ${config.returnType}>> ${config.repositoryMethodName}(...)');
   }
 
   void _parseFields(
@@ -330,5 +364,137 @@ class UseCaseCommand extends BaseCommand {
         fields.add(FieldDefinition.parse(input, type));
       }
     }
+  }
+
+  /// Select target BLoC for event handler
+  Future<BlocInfo?> _selectTargetBloc(
+    String projectPath,
+    String featureName,
+    String? targetBlocArg, {
+    bool interactive = false,
+    bool verbose = false,
+  }) async {
+    final availableBlocs = _detectBlocs(projectPath, featureName);
+
+    if (availableBlocs.isEmpty) {
+      if (verbose) {
+        print('⚠ Warning: No BLoCs found for feature $featureName');
+      }
+      return null;
+    }
+
+    // If only one BLoC, auto-select it
+    if (availableBlocs.length == 1) {
+      if (verbose) {
+        print('ℹ Auto-selected: ${availableBlocs.first.displayName}');
+      }
+      return availableBlocs.first;
+    }
+
+    // If --target-bloc flag provided, use it
+    if (targetBlocArg != null) {
+      final target = targetBlocArg.toLowerCase();
+
+      // Match by name
+      final match = availableBlocs.firstWhere(
+        (bloc) =>
+            bloc.snakeName.toLowerCase() == target ||
+            target == 'main' && !bloc.isModelBloc,
+        orElse: () => availableBlocs.first,
+      );
+
+      if (verbose) {
+        print('ℹ Selected via --target-bloc: ${match.displayName}');
+      }
+      return match;
+    }
+
+    // Interactive selection
+    print('');
+    print('📋 Multiple BLoCs detected. Select target:');
+    print('');
+
+    final choices = [
+      ...availableBlocs.map((b) => b.displayName),
+      'Skip event generation (manual)',
+    ];
+
+    final selectedIndex = CLIPrompts.select(
+      'Select target BLoC for event handler:',
+      choices,
+      defaultIndex: 0,
+    );
+
+    if (selectedIndex == choices.length - 1) {
+      // User chose to skip
+      print('ℹ Skipping event generation');
+      return null;
+    }
+
+    return availableBlocs[selectedIndex];
+  }
+
+  /// Detect available BLoCs in a feature
+  List<BlocInfo> _detectBlocs(String projectPath, String featureName) {
+    final blocs = <BlocInfo>[];
+    final featureSnake = _toSnakeCase(featureName);
+    final featurePascal = _toPascalCase(featureName);
+    final blocDir =
+        Directory('$projectPath/lib/features/$featureSnake/presentation/bloc');
+
+    if (!blocDir.existsSync()) {
+      return blocs;
+    }
+
+    // Main feature BLoC
+    final mainBlocFile = File('${blocDir.path}/${featureSnake}_bloc.dart');
+    if (mainBlocFile.existsSync()) {
+      blocs.add(BlocInfo(
+        name: '${featurePascal}Bloc',
+        path: mainBlocFile.path,
+        displayName: '${featurePascal}Bloc (Main feature BLoC)',
+        isModelBloc: false,
+        snakeName: featureSnake,
+      ));
+    }
+
+    // Model BLoCs
+    final modelsDir = Directory('${blocDir.path}/models');
+    if (modelsDir.existsSync()) {
+      for (final entity in modelsDir.listSync()) {
+        if (entity is File && entity.path.endsWith('_bloc.dart')) {
+          final fileName = entity.path.split(Platform.pathSeparator).last;
+          final modelSnake = fileName.replaceAll('_bloc.dart', '');
+          final modelPascal = _toPascalCase(modelSnake);
+
+          blocs.add(BlocInfo(
+            name: '${modelPascal}Bloc',
+            path: entity.path,
+            displayName: '${modelPascal}Bloc (Model BLoC)',
+            isModelBloc: true,
+            snakeName: modelSnake,
+          ));
+        }
+      }
+    }
+
+    return blocs;
+  }
+
+  /// Convert snake_case to PascalCase
+  String _toPascalCase(String input) {
+    return input.split('_').map((word) {
+      if (word.isEmpty) return '';
+      return '${word[0].toUpperCase()}${word.substring(1)}';
+    }).join();
+  }
+
+  /// Convert to snake_case
+  String _toSnakeCase(String input) {
+    return input
+        .replaceAllMapped(
+            RegExp(r'([A-Z])'), (match) => '_${match.group(1)!.toLowerCase()}')
+        .replaceAll('__', '_')
+        .replaceAll(RegExp(r'^_'), '');
   }
 }
