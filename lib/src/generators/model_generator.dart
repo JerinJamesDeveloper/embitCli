@@ -1,5 +1,7 @@
 import 'dart:io';
+import '../models/feature_config.dart';
 import '../models/field_definition.dart';
+import '../templates/datasource_templates.dart';
 
 class ModelGenerator {
   Future<void> generate(ModelGeneratorConfig config,
@@ -14,6 +16,7 @@ class ModelGenerator {
 
     await _createEntity(config, entityPath, verbose: verbose);
     await _createModel(config, modelPath, verbose: verbose);
+    await _createLocalDataSource(config, featurePath, verbose: verbose);
 
     if (config.withState) {
       await _updateBlocState(
@@ -285,6 +288,31 @@ class ModelGenerator {
 
     await File('$path/$modelFileName.dart').writeAsString(content);
     print('✔ Model created: $path/$modelFileName.dart');
+  }
+
+  Future<void> _createLocalDataSource(
+    ModelGeneratorConfig config,
+    String featurePath, {
+    bool verbose = false,
+  }) async {
+    final dataSourcePath = '$featurePath/data/datasources';
+    await Directory(dataSourcePath).create(recursive: true);
+
+    final fileName = '${_toSnakeCase(config.modelName)}_local_datasource';
+    final filePath = '$dataSourcePath/$fileName.dart';
+
+    // Override the name to be the model name so the template uses the correct name
+    // The template uses config.name for the entity/model prefix
+    final modelConfig = FeatureConfig(
+      name: _toSnakeCase(config.modelName),
+      projectName: config.projectName,
+      projectPath: config.projectPath,
+    );
+
+    final content = DataSourceTemplates.localDataSource(modelConfig);
+
+    await File(filePath).writeAsString(content);
+    print('✔ Local Data Source created: $filePath');
   }
 
   // ══════════════════════════════════════════════════════════════════════════

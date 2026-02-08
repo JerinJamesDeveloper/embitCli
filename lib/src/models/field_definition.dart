@@ -435,11 +435,15 @@ class ModelGeneratorConfig {
   final bool generateEquatable;
   final bool generateJson;
   final bool withState;
+  final String projectName;
+  final String projectPath;
 
   const ModelGeneratorConfig({
     required this.featureName,
     required this.modelName,
     required this.fields,
+    required this.projectName,
+    required this.projectPath,
     this.description,
     this.generateCopyWith = true,
     this.generateEquatable = true,

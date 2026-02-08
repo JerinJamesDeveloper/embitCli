@@ -2,6 +2,7 @@ import 'package:args/args.dart';
 import 'dart:io';
 import '../models/field_definition.dart';
 import '../generators/model_generator.dart';
+import '../validators/project_validator.dart';
 import 'base_command.dart';
 
 class ModelCommand extends BaseCommand {
@@ -94,11 +95,17 @@ class ModelCommand extends BaseCommand {
     // ─────────────────────────────────────────────────────────────────────────
     final withState = results['with-state'] == true;
 
+    // Get Project Info
+    final projectPath = Directory.current.path;
+    final projectName = ProjectValidator.getProjectName(projectPath);
+
     final config = ModelGeneratorConfig(
       featureName: feature,
       modelName: name,
       fields: fields,
       withState: withState,
+      projectName: projectName,
+      projectPath: projectPath,
     );
 
     try {
