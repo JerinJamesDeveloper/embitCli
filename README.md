@@ -1,8 +1,8 @@
 # Embit CLI Documentation
 
-## Version 0.9.2
+## Version 0.9.3
 
-[![Version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
+[![Version](https://img.shields.io/badge/version-0.9.3-blue.svg)](https://github.com/JerinJamesDeveloper/embitCli)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -10,6 +10,7 @@
 ## Table of Contents
 
 - [Overview](#overview-section)
+  - [What's New in 0.9.3](#whats-new-in-093)
   - [What's New in 0.9.2](#whats-new-in-092)
   - [What's New in 0.9.1](#whats-new-in-091)
   - [What's New in 0.9.0](#whats-new-in-090)
@@ -68,6 +69,26 @@ dart pub global activate embit
 ```bash
 embit --version
 # Output: embit 0.9.0
+```
+
+---
+
+## What's New in 0.9.3
+
+### 🚀 Enhanced Custom Field Support
+Added robust support for custom fields with Clean Architecture separation.
+- **Auto-Architecture**: `Care` -> `CareEntity` (Domain) + `CareModel` (Data)
+- **Serialization**: Correctly handles `fromJson` using Model and `toJson` using Entity conversion.
+
+```bash
+embit model -f feature -n MyModel --custom Care
+```
+
+### 🔧 Optional Local Data Source
+Local data source generation is now optional. Use `--source` flag to generate it.
+
+```bash
+embit model -f feature -n MyModel --source
 ```
 
 ---
@@ -777,7 +798,13 @@ generate:
 
 ## Changelog
 
-### Version 0.9.2 (Latest)
+### Version 0.9.3 (Latest)
+
+#### Added
+- ✨ **Custom Field Support**: Enhanced parsing and code generation for custom types (e.g. `Care` -> `CareEntity`/`CareModel`).
+- ✨ **Optional Data Source**: New `--source` flag to control local data source generation (default: false).
+
+### Version 0.9.2
 
 #### Added
 - ✨ **Local Data Source Generation**: `embit model` command now generates local data source files (e.g., `product_local_datasource.dart`) using `LocalStorage`.
