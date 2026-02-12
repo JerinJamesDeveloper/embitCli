@@ -544,6 +544,7 @@ class ModelGeneratorConfig {
   final bool generateEquatable;
   final bool generateJson;
   final bool withState;
+  final bool withSource;
   final String projectName;
   final String projectPath;
 
@@ -558,6 +559,7 @@ class ModelGeneratorConfig {
     this.generateEquatable = true,
     this.generateJson = true,
     this.withState = false,
+    this.withSource = false,
   });
 
   /// Feature name in PascalCase

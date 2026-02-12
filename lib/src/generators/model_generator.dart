@@ -16,7 +16,10 @@ class ModelGenerator {
 
     await _createEntity(config, entityPath, verbose: verbose);
     await _createModel(config, modelPath, verbose: verbose);
-    await _createLocalDataSource(config, featurePath, verbose: verbose);
+
+    if (config.withSource) {
+      await _createLocalDataSource(config, featurePath, verbose: verbose);
+    }
 
     if (config.withState) {
       await _updateBlocState(

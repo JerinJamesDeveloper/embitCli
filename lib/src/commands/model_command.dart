@@ -25,8 +25,16 @@ class ModelCommand extends BaseCommand {
     ..addMultiOption('double', help: 'Add double field')
     ..addMultiOption('bool', help: 'Add bool field (e.g., isActive=true)')
     ..addMultiOption('datetime', help: 'Add DateTime field')
-    ..addMultiOption('custom',
-        help: 'Add custom field (e.g. "CareEntity", "careEntity:CareEntity")')
+    ..addFlag(
+      'source',
+      abbr: 's',
+      help: 'Generate a local data source',
+      defaultsTo: false,
+    )
+    ..addMultiOption(
+      'custom',
+      help: 'Custom field definition (e.g. "Care", "items:List<Item>")',
+    )
     ..addFlag('with-state',
         help: 'Generate BLoC states for this model', negatable: false)
     ..addFlag('help',
@@ -108,6 +116,8 @@ class ModelCommand extends BaseCommand {
     final projectPath = Directory.current.path;
     final projectName = ProjectValidator.getProjectName(projectPath);
 
+    final withSource = results['source'] as bool;
+
     final config = ModelGeneratorConfig(
       featureName: feature,
       modelName: name,
@@ -115,6 +125,8 @@ class ModelCommand extends BaseCommand {
       withState: withState,
       projectName: projectName,
       projectPath: projectPath,
+      generateJson: true,
+      withSource: withSource,
     );
 
     try {
