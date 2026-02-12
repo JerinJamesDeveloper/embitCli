@@ -101,6 +101,9 @@ class FieldDefinition {
   /// Description for documentation
   final String? description;
 
+  /// Whether the field is a custom type (e.g., CareEntity)
+  final bool isCustom;
+
   const FieldDefinition({
     required this.name,
     required this.type,
@@ -108,6 +111,7 @@ class FieldDefinition {
     this.isRequired = true,
     this.defaultValue,
     this.description,
+    this.isCustom = false,
   });
 
   // ==================== COMPUTED PROPERTIES ====================
@@ -301,6 +305,7 @@ class FieldDefinition {
       defaultValue: defaultValue,
       // Custom types might need to be required if not nullable/default
       isRequired: !isNullable && defaultValue == null,
+      isCustom: true,
     );
   }
 
