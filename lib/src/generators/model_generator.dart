@@ -208,7 +208,7 @@ class ModelGenerator {
     buffer.writeln('  /// Creates a copy with updated fields');
     buffer.writeln('  $className copyWith({');
     for (final field in config.fields) {
-      buffer.writeln('    ${field.type}? ${field.name},');
+      buffer.writeln('    ${field.dartType}? ${field.name},');
     }
     buffer.writeln('  }) {');
     buffer.writeln('    return $className(');
@@ -548,7 +548,7 @@ class ${model}Error extends ${feature}State {
     buffer.writeln('  @override');
     buffer.writeln('  $modelName copyWith({');
     for (final field in config.fields) {
-      buffer.writeln('    ${field.type}? ${field.name},');
+      buffer.writeln('    ${field.dartType}? ${field.name},');
     }
     buffer.writeln('  }) {');
     buffer.writeln('    return $modelName(');
