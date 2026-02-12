@@ -25,6 +25,8 @@ class ModelCommand extends BaseCommand {
     ..addMultiOption('double', help: 'Add double field')
     ..addMultiOption('bool', help: 'Add bool field (e.g., isActive=true)')
     ..addMultiOption('datetime', help: 'Add DateTime field')
+    ..addMultiOption('custom',
+        help: 'Add custom field (e.g. "CareEntity", "careEntity:CareEntity")')
     ..addFlag('with-state',
         help: 'Generate BLoC states for this model', negatable: false)
     ..addFlag('help',
@@ -60,6 +62,13 @@ class ModelCommand extends BaseCommand {
     _parseFields(results, 'double', 'double', fields);
     _parseFields(results, 'bool', 'bool', fields);
     _parseFields(results, 'datetime', 'DateTime', fields);
+
+    // Parse custom fields
+    if (results.wasParsed('custom')) {
+      for (var input in results['custom'] as List<String>) {
+        fields.add(FieldDefinition.fromCustom(input));
+      }
+    }
 
     if (fields.isEmpty) {
       stderr.writeln('❌ Error: No fields provided.');
@@ -171,6 +180,7 @@ Field Options:
   --double          Add double field
   --bool            Add bool field
   --datetime        Add DateTime field
+  --custom          Add custom field (e.g. CareEntity)
 
 Field Syntax:
   fieldName         Required field

@@ -263,6 +263,52 @@ class FieldDefinition {
     );
   }
 
+  /// Parse from custom field definition (e.g., "CareEntity", "careEntity:CareEntity")
+  factory FieldDefinition.fromCustom(String input) {
+    String name;
+    String type;
+    bool isNullable = false;
+    String? defaultValue;
+
+    // Check for default value (e.g., "Type=default" or "name:Type=default")
+    if (input.contains('=')) {
+      final parts = input.split('=');
+      input = parts[0].trim();
+      defaultValue = parts.sublist(1).join('='); // Handle values with '='
+    }
+
+    // Check for nullable (e.g., "Type?" or "name:Type?")
+    if (input.endsWith('?')) {
+      isNullable = true;
+      input = input.substring(0, input.length - 1);
+    }
+
+    if (input.contains(':')) {
+      // Format: name:Type
+      final parts = input.split(':');
+      name = parts[0].trim();
+      type = parts[1].trim();
+    } else {
+      // Format: Type (infer name)
+      type = input.trim();
+      name = _toCamelCase(type);
+    }
+
+    return FieldDefinition(
+      name: name,
+      type: type,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      // Custom types might need to be required if not nullable/default
+      isRequired: !isNullable && defaultValue == null,
+    );
+  }
+
+  static String _toCamelCase(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toLowerCase() + input.substring(1);
+  }
+
   /// Parse from simple format: "name" with separate type
   /// Used for simpler CLI input like --fields "name,description?,count"
   factory FieldDefinition.parseSimple(String input, String type) {
