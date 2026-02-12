@@ -121,10 +121,48 @@ class FieldDefinition {
 
   /// Full Dart type with nullability
   String get dartType {
-    if (isNullable && !type.endsWith('?')) {
-      return '$type?';
+    String finalType = type;
+    if (isCustom) {
+      if (type.startsWith('List<')) {
+        final inner = type.substring(5, type.length - 1);
+        finalType = 'List<${inner}Entity>';
+      } else {
+        finalType = '${type}Entity';
+      }
     }
-    return type;
+
+    if (isNullable && !finalType.endsWith('?')) {
+      return '$finalType?';
+    }
+    return finalType;
+  }
+
+  /// Get the Model type for custom fields
+  String get modelType {
+    if (!isCustom) return type;
+    if (type.startsWith('List<')) {
+      final inner = type.substring(5, type.length - 1);
+      return 'List<${inner}Model>';
+    }
+    return '${type}Model';
+  }
+
+  /// Get the base Model class name (without List wrapper)
+  String get baseModelName {
+    if (!isCustom) return type;
+    if (type.startsWith('List<')) {
+      return '${type.substring(5, type.length - 1)}Model';
+    }
+    return '${type}Model';
+  }
+
+  /// Get the base Entity class name (without List wrapper)
+  String get baseEntityName {
+    if (!isCustom) return type;
+    if (type.startsWith('List<')) {
+      return '${type.substring(5, type.length - 1)}Entity';
+    }
+    return '${type}Entity';
   }
 
   /// Whether field has a default value
@@ -157,7 +195,27 @@ class FieldDefinition {
 
   /// Get copyWith parameter
   /// e.g., "String? name,"
-  String get copyWithParam => '$type? $name,';
+  String get copyWithParam {
+    // For custom type Care, dartType is CareEntity? or CareEntity
+    // We want copyWith(CareEntity? name)
+
+    // dartType property already handles the "Entity" suffix and nullability
+    // BUT copyWith param is ALWAYS nullable.
+
+    String base = type;
+    if (isCustom) {
+      if (type.startsWith('List<')) {
+        final inner = type.substring(5, type.length - 1);
+        base = 'List<${inner}Entity>';
+      } else {
+        base = '${type}Entity';
+      }
+    }
+
+    // If original type was nullable, base might have ? if I used dartType logic.
+    // simpler:
+    return '$base? $name,';
+  }
 
   /// Get copyWith assignment
   /// e.g., "name: name ?? this.name,"

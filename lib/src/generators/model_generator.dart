@@ -98,7 +98,7 @@ class ModelGenerator {
           if (field.type.startsWith('List<')) {
             return 'const []';
           }
-          return '${field.type}.empty()';
+          return '${field.baseEntityName}.empty()';
         }
         return "''";
     }
@@ -625,20 +625,23 @@ class ${model}Error extends ${feature}State {
 
       default:
         if (field.isCustom) {
+          final modelName = field.baseModelName;
+
           // Check for List of custom objects
           if (field.type.startsWith('List<')) {
-            final innerType = field.type.substring(5, field.type.length - 1);
             if (field.isNullable) {
-              return "(json['$snakeKey'] as List<dynamic>?)?.map((e) => $innerType.fromJson(e as Map<String, dynamic>)).toList()";
+              return "(json['$snakeKey'] as List<dynamic>?)?.map((e) => $modelName.fromJson(e as Map<String, dynamic>)).toList()";
             }
-            return "(json['$snakeKey'] as List<dynamic>?)?.map((e) => $innerType.fromJson(e as Map<String, dynamic>)).toList() ?? []";
+            return "(json['$snakeKey'] as List<dynamic>?)?.map((e) => $modelName.fromJson(e as Map<String, dynamic>)).toList() ?? []";
           }
 
           // Single custom object
           if (field.isNullable) {
-            return "json['$snakeKey'] != null ? ${field.type}.fromJson(json['$snakeKey'] as Map<String, dynamic>) : null";
+            return "json['$snakeKey'] != null ? $modelName.fromJson(json['$snakeKey'] as Map<String, dynamic>) : null";
           }
-          return "json['$snakeKey'] != null ? ${field.type}.fromJson(json['$snakeKey'] as Map<String, dynamic>) : ${field.type}.empty()";
+          // Fallback to empty() from Entity or Model? Model.empty() works too.
+          // But consistency: explicit .empty()
+          return "json['$snakeKey'] != null ? $modelName.fromJson(json['$snakeKey'] as Map<String, dynamic>) : $modelName.empty()";
         }
         return "json['$snakeKey']";
     }
@@ -653,17 +656,19 @@ class ${model}Error extends ${feature}State {
         return '${field.name}.toIso8601String()';
       default:
         if (field.isCustom) {
+          final modelName = field.baseModelName;
+
           if (field.type.startsWith('List<')) {
             if (field.isNullable) {
-              return '${field.name}?.map((e) => e.toJson()).toList()';
+              return '${field.name}?.map((e) => $modelName.fromEntity(e).toJson()).toList()';
             }
-            return '${field.name}.map((e) => e.toJson()).toList()';
+            return '${field.name}.map((e) => $modelName.fromEntity(e).toJson()).toList()';
           }
 
           if (field.isNullable) {
-            return '${field.name}?.toJson()';
+            return '${field.name} != null ? $modelName.fromEntity(${field.name}!).toJson() : null';
           }
-          return '${field.name}.toJson()';
+          return '$modelName.fromEntity(${field.name}).toJson()';
         }
         return field.name;
     }
